@@ -9,6 +9,9 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Atlas from "./pages/Atlas";
 import DigitalTwin from "./pages/DigitalTwin";
+import Simulations from "./pages/Simulations";
+import Reports from "./pages/Reports";
+import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -17,6 +20,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+<<<<<<< Updated upstream
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
@@ -56,6 +60,27 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
+=======
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/atlas" element={<Atlas />} />
+          <Route path="/digital-twin" element={<DigitalTwin />} />
+          <Route path="/simulations" element={<Simulations />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/community" element={<Community />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+>>>>>>> Stashed changes
   </QueryClientProvider>
 );
 
