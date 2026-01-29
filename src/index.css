@@ -116,6 +116,51 @@
       inset 0 1px 0 hsl(217 33% 40% / 0.1);
   }
 
+  /* Premium "command center" panel */
+  .env-panel {
+    @apply relative overflow-hidden;
+    background:
+      radial-gradient(900px 520px at 20% 30%, hsl(160 84% 39% / 0.12), transparent 62%),
+      radial-gradient(700px 460px at 70% 60%, hsl(185 94% 48% / 0.09), transparent 58%),
+      linear-gradient(135deg, hsl(222 47% 8%), hsl(222 47% 4%));
+  }
+
+  .env-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(hsl(217 33% 20% / 0.32) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(217 33% 20% / 0.32) 1px, transparent 1px);
+    background-size: 52px 52px;
+    opacity: 0.26;
+    mask-image: radial-gradient(ellipse at 30% 30%, black 0%, transparent 65%);
+  }
+
+  .env-panel::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    background:
+      radial-gradient(1px 1px at 12% 28%, hsl(185 94% 60% / 0.55), transparent 55%),
+      radial-gradient(1px 1px at 28% 62%, hsl(160 84% 50% / 0.5), transparent 55%),
+      radial-gradient(1px 1px at 66% 38%, hsl(210 40% 96% / 0.25), transparent 55%),
+      radial-gradient(1px 1px at 78% 72%, hsl(185 94% 60% / 0.45), transparent 55%),
+      radial-gradient(1px 1px at 42% 18%, hsl(160 84% 50% / 0.35), transparent 55%);
+    opacity: 0.35;
+    filter: blur(0.2px);
+    pointer-events: none;
+  }
+
+  .noise-overlay {
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+
   .glass-card-hover {
     @apply glass-card transition-all duration-300;
   }

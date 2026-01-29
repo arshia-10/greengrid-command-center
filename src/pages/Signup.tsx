@@ -1,35 +1,34 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Globe, ArrowLeft, Eye, EyeOff, Mail, Lock, User, Building2, GraduationCap, FlaskConical, Landmark } from "lucide-react";
+import { Globe, ArrowLeft, Eye, EyeOff, Mail, Lock, User, Building2, ShieldCheck, CloudSun, TriangleAlert, PlayCircle, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const userTypes = [
-  { id: "citizen", label: "Student / Citizen", icon: User, description: "Personal environmental monitoring" },
-  { id: "campus", label: "Campus Authority", icon: GraduationCap, description: "University & campus management" },
-  { id: "researcher", label: "Researcher", icon: FlaskConical, description: "Environmental research & data" },
-  { id: "government", label: "Government / ESG", icon: Landmark, description: "City planning & compliance" },
-];
+const intents = [
+  { id: "monitor", label: "Monitor environmental conditions", icon: CloudSun },
+  { id: "risks", label: "Explore climate risks & forecasts", icon: TriangleAlert },
+  { id: "simulate", label: "Simulate sustainability actions", icon: PlayCircle },
+  { id: "learn", label: "Learn & research environmental data", icon: BookOpen },
+] as const;
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [step, setStep] = useState(1);
+  const [selectedIntent, setSelectedIntent] = useState<(typeof intents)[number]["id"] | null>(null);
   const navigate = useNavigate();
 
-  const handleContinue = () => {
-    if (step === 1 && selectedType) {
-      setStep(2);
-    } else if (step === 2) {
-      navigate("/dashboard");
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate("/dashboard");
   };
 
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left side - Form */}
-      <div className="flex-1 flex flex-col p-6 sm:p-8 lg:p-12">
+      <div className="flex-1 flex flex-col p-6 sm:p-8 lg:p-12 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-background via-background to-secondary/20" />
+        <div className="absolute -top-24 left-10 -z-10 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-0 right-10 -z-10 h-80 w-80 rounded-full bg-accent/10 blur-3xl" />
         <div className="flex items-center justify-between mb-8">
           <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -45,125 +44,160 @@ const Signup = () => {
 
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-md">
-            {step === 1 ? (
-              <>
-                <div className="text-center mb-8">
-                  <h1 className="text-2xl sm:text-3xl font-bold mb-2">Join GreenGrid</h1>
-                  <p className="text-muted-foreground">Select your role to get started</p>
-                </div>
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-card/30 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                <span>Secure onboarding • Climate-first</span>
+              </div>
+              <h1 className="mt-4 text-2xl sm:text-3xl font-semibold tracking-tight">Create your GreenGrid access</h1>
+              <p className="mt-2 text-muted-foreground">Your personal climate intelligence workspace.</p>
+            </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  {userTypes.map((type) => (
+            <div className="glass-card p-7 sm:p-8">
+              <div className="mb-6">
+                <div className="text-sm font-medium">How will you use GreenGrid?</div>
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {intents.map((intent) => (
                     <button
-                      key={type.id}
-                      onClick={() => setSelectedType(type.id)}
-                      className={`p-4 rounded-xl border text-left transition-all duration-300 ${
-                        selectedType === type.id
-                          ? "border-primary bg-primary/10 shadow-glow"
-                          : "border-white/10 bg-card/60 hover:border-white/20 hover:bg-card/80"
-                      }`}
+                      key={intent.id}
+                      type="button"
+                      onClick={() => setSelectedIntent(intent.id)}
+                      className={[
+                        "group rounded-xl border px-4 py-3 text-left transition-all duration-300",
+                        "bg-card/30 backdrop-blur",
+                        "hover:border-white/20 hover:bg-card/40",
+                        selectedIntent === intent.id ? "border-primary/35" : "border-white/10",
+                      ].join(" ")}
+                      aria-pressed={selectedIntent === intent.id}
                     >
-                      <type.icon className={`h-6 w-6 mb-3 ${selectedType === type.id ? "text-primary" : "text-muted-foreground"}`} />
-                      <div className="font-medium mb-1">{type.label}</div>
-                      <div className="text-xs text-muted-foreground">{type.description}</div>
+                      <div className="flex items-center gap-3">
+                        <intent.icon
+                          className={[
+                            "h-4 w-4",
+                            selectedIntent === intent.id ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                          ].join(" ")}
+                        />
+                        <div className="text-sm leading-snug">{intent.label}</div>
+                      </div>
                     </button>
                   ))}
                 </div>
-
-                <Button variant="hero" className="w-full" size="lg" disabled={!selectedType} onClick={handleContinue}>
-                  Continue
-                </Button>
-
-                <p className="text-center text-sm text-muted-foreground mt-6">
-                  Already have an account?{" "}
-                  <Link to="/login" className="text-primary hover:underline">
-                    Sign in
-                  </Link>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Optional — this won’t change your account or permissions.
                 </p>
-              </>
-            ) : (
-              <>
-                <div className="text-center mb-8">
-                  <h1 className="text-2xl sm:text-3xl font-bold mb-2">Create your account</h1>
-                  <p className="text-muted-foreground">Enter your details below</p>
+              </div>
+
+              <form className="space-y-5" onSubmit={handleSubmit}>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="name"
+                      placeholder="John Doe"
+                      className="pl-10 rounded-xl bg-secondary/30 border-white/10 focus-visible:ring-primary/60 focus-visible:ring-offset-0"
+                    />
+                  </div>
                 </div>
 
-                <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleContinue(); }}>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="name" placeholder="John Doe" className="pl-10 bg-secondary/50 border-white/10" />
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      className="pl-10 rounded-xl bg-secondary/30 border-white/10 focus-visible:ring-primary/60 focus-visible:ring-offset-0"
+                    />
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="email" type="email" placeholder="you@example.com" className="pl-10 bg-secondary/50 border-white/10" />
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="organization">Organization (Optional)</Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="organization"
+                      placeholder="Your organization"
+                      className="pl-10 rounded-xl bg-secondary/30 border-white/10 focus-visible:ring-primary/60 focus-visible:ring-offset-0"
+                    />
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="organization">Organization (Optional)</Label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input id="organization" placeholder="Your organization" className="pl-10 bg-secondary/50 border-white/10" />
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="pl-10 pr-10 rounded-xl bg-secondary/30 border-white/10 focus-visible:ring-primary/60 focus-visible:ring-offset-0"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        className="pl-10 pr-10 bg-secondary/50 border-white/10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <Button variant="hero" className="w-full" size="lg" type="submit">
-                    Create Account
-                  </Button>
-                </form>
-
-                <p className="text-center text-sm text-muted-foreground mt-6">
-                  By continuing, you agree to our{" "}
-                  <a href="#" className="text-primary hover:underline">Terms</a>
-                  {" "}and{" "}
-                  <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+                <Button variant="hero" className="w-full" size="lg" type="submit">
+                  Enter GreenGrid
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  No complex setup. GreenGrid adapts as you grow.
                 </p>
-              </>
-            )}
+              </form>
+            </div>
+
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              Already have an account?{" "}
+              <Link to="/login" className="text-primary hover:underline">
+                Sign in
+              </Link>
+            </p>
           </div>
         </div>
       </div>
 
       {/* Right side - Visual */}
-      <div className="hidden lg:flex flex-1 items-center justify-center p-12 relative overflow-hidden bg-gradient-to-br from-secondary/50 to-background">
-        <div className="absolute inset-0 grid-pattern opacity-30" />
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse-slow delay-1000" />
-        
-        <div className="relative text-center">
-          <div className="w-32 h-32 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-glow animate-float">
-            <Globe className="h-16 w-16 text-slate-950" />
+      <div className="hidden lg:flex flex-1 p-12 relative overflow-hidden env-panel">
+        <div className="noise-overlay" />
+        <div className="absolute inset-0 map-overlay opacity-90" />
+        <div className="scanner-line opacity-35" />
+
+        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-primary/12 blur-3xl animate-pulse-slow" />
+        <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-accent/10 blur-3xl animate-pulse-slow delay-1000" />
+
+        <div className="relative flex w-full flex-col justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 shadow-[0_0_28px_hsl(160_84%_39%/_0.18)]">
+              <Globe className="h-5 w-5 text-slate-950" />
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground">GreenGrid</div>
+              <div className="font-semibold tracking-tight">Personal climate intelligence</div>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold mb-4">Environmental Intelligence</h2>
-          <p className="text-muted-foreground max-w-sm">
-            Join thousands of cities and organizations transforming environmental management with AI-powered insights.
-          </p>
+
+          <div className="max-w-xl">
+            <h2 className="text-3xl font-semibold leading-tight">A calm place to understand climate.</h2>
+            <p className="mt-3 text-muted-foreground">
+              Explore environmental conditions, climate risks, and potential actions—then keep a simple record of what you learn.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="status-live">Secure</span>
+            <span>•</span>
+            <span>Clear</span>
+            <span>•</span>
+            <span>Hackathon-ready</span>
+          </div>
         </div>
       </div>
     </div>
