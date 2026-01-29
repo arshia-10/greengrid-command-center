@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Globe, Zap, Shield, BarChart3, Users, TreePine, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroGlobe from "@/assets/hero-globe.jpg";
+import builtForNeedsImage from "@/assets/built-for-needs.png";
 
 const Navbar = () => (
   <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-xl">
@@ -15,7 +16,6 @@ const Navbar = () => (
       <div className="hidden md:flex items-center gap-8">
         <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
         <a href="#use-cases" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Use Cases</a>
-        <a href="#impact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Impact</a>
       </div>
       <div className="flex items-center gap-3">
         <Button variant="ghost" asChild>
@@ -81,20 +81,7 @@ const HeroSection = () => (
         </Button>
       </div>
 
-      {/* Stats preview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-20 animate-fade-up delay-400">
-        {[
-          { value: "2.4M+", label: "Data Points Analyzed" },
-          { value: "156", label: "Cities Connected" },
-          { value: "99.9%", label: "Uptime SLA" },
-          { value: "40%", label: "Carbon Reduction" },
-        ].map((stat, i) => (
-          <div key={i} className="glass-card p-4 text-center">
-            <div className="text-2xl sm:text-3xl font-bold gradient-text font-mono-data">{stat.value}</div>
-            <div className="text-sm text-muted-foreground">{stat.label}</div>
-          </div>
-        ))}
-      </div>
+      {/* Stats preview removed as requested */}
     </div>
   </section>
 );
@@ -113,18 +100,18 @@ const ProblemSection = () => (
         {[
           {
             icon: Shield,
-            title: "Reactive Systems",
-            description: "Current systems only respond after damage occurs. No prediction, no prevention.",
+            title: "Lagging Telemetry",
+            description: "Signals arrive late or incomplete. Response starts after impact is visible.",
           },
           {
             icon: BarChart3,
-            title: "Fragmented Data",
-            description: "Environmental data exists in silos. No unified view of city health.",
+            title: "Siloed Evidence",
+            description: "Air, heat, water, waste live in separate dashboards. No shared state or provenance.",
           },
           {
             icon: Activity,
-            title: "No Future Vision",
-            description: "Without simulation capabilities, cities can't test strategies before implementation.",
+            title: "No Counterfactuals",
+            description: "Policies ship without scenario testing. No measurable “what-if” outcomes.",
           },
         ].map((problem, i) => (
           <div key={i} className="glass-card-hover p-6 text-center group">
@@ -165,24 +152,24 @@ const SolutionSection = () => (
             step: "01",
             icon: Globe,
             title: "Green Grid Atlas",
-            subtitle: "Detect & Predict",
-            description: "Live environmental mapping with AI-powered risk detection and predictive analytics.",
+            subtitle: "Fuse & Localize",
+            description: "Stream sensor + citizen signals into live risk surfaces per zone.",
             color: "from-emerald-500/20 to-emerald-500/5",
           },
           {
             step: "02",
             icon: Activity,
             title: "Digital Twin",
-            subtitle: "Simulate & Test",
-            description: "Create virtual replicas of your environment to test scenarios before implementation.",
+            subtitle: "Simulate Scenarios",
+            description: "Run intervention what-ifs before rollout. Compare trajectories and tradeoffs.",
             color: "from-cyan-500/20 to-cyan-500/5",
           },
           {
             step: "03",
             icon: Zap,
             title: "Decision Engine",
-            subtitle: "Act & Optimize",
-            description: "AI-driven recommendations for environmental interventions and policy decisions.",
+            subtitle: "Rank Actions",
+            description: "Prioritize interventions by impact, cost, and sustainability constraints.",
             color: "from-primary/20 to-primary/5",
           },
         ].map((solution, i) => (
@@ -221,18 +208,18 @@ const FeaturesSection = () => (
       <div className="text-center mb-16">
         <h2 className="text-3xl sm:text-4xl font-bold mb-4">Powerful Features</h2>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Everything you need to monitor, predict, and optimize your environment
+          Operator-grade blocks you can demo live — no imagination required.
         </p>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
-          { icon: Globe, title: "Live Risk Maps", description: "Real-time environmental monitoring with heat, air, water, and waste tracking" },
-          { icon: Activity, title: "AI Prediction", description: "Machine learning models forecast environmental changes days in advance" },
-          { icon: Zap, title: "Digital Twin Lab", description: "Test environmental scenarios in a virtual replica of your city" },
-          { icon: Shield, title: "Smart Actions", description: "AI-generated recommendations for intervention and policy decisions" },
-          { icon: Users, title: "Citizen Reports", description: "Crowdsourced environmental intelligence from community members" },
-          { icon: BarChart3, title: "Impact Dashboards", description: "Track sustainability metrics and environmental KPIs" },
+          { icon: Globe, title: "Risk Map Console", description: "Heat, air, and water layers on a single live surface." },
+          { icon: Activity, title: "Forecast Timeline", description: "Scrub 24–72h ahead to see risk move by zone." },
+          { icon: Zap, title: "Scenario Sandbox", description: "Run A/B interventions on the shared digital twin." },
+          { icon: Shield, title: "Action Queue", description: "Rank and dispatch environmental playbooks by impact." },
+          { icon: Users, title: "Signal Fusion", description: "Blend sensors, citizen reports, and model outputs." },
+          { icon: BarChart3, title: "Ops Dashboard", description: "Watch sustainability KPIs shift in real time." },
         ].map((feature, i) => (
           <div key={i} className="glass-card-hover p-6 group">
             <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors group-hover:scale-110">
@@ -250,80 +237,41 @@ const FeaturesSection = () => (
 const UseCasesSection = () => (
   <section id="use-cases" className="py-24 relative bg-gradient-to-b from-transparent via-secondary/30 to-transparent">
     <div className="container mx-auto px-4">
-      <div className="text-center mb-16">
-        <h2 className="text-3xl sm:text-4xl font-bold mb-4">Built For Your Needs</h2>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
-          From smart cities to university campuses, GreenGrid adapts to your scale
-        </p>
-      </div>
+      <div className="grid md:grid-cols-2 gap-12 items-center">
+        {/* Left: Heading and bullet points */}
+        <div className="space-y-6 text-left md:pr-8">
+          <h2 className="text-3xl sm:text-4xl font-bold">
+            Built For Your Needs
+          </h2>
+          <p className="text-muted-foreground max-w-xl">
+            Each domain ships as a focused environmental intelligence module, ready to plug into your operations.
+          </p>
+          <ul className="list-disc list-inside space-y-3 text-muted-foreground">
+            <li>
+              <span className="font-semibold text-foreground">Smart Cities</span> – Tune heat, air, and mobility policies and see predicted risk per district.
+            </li>
+            <li>
+              <span className="font-semibold text-foreground">Campuses &amp; Universities</span> – Track buildings and quads against live footprint and comfort targets.
+            </li>
+            <li>
+              <span className="font-semibold text-foreground">Disaster Management</span> – Stress-test floods or fires and pre-plan playbooks before events hit.
+            </li>
+            <li>
+              <span className="font-semibold text-foreground">ESG &amp; Sustainability</span> – Simulate policies and see CO₂ and resilience curves over time.
+            </li>
+          </ul>
+        </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        {[
-          {
-            title: "Smart Cities",
-            description: "City-wide environmental monitoring and policy simulation for urban planners",
-            features: ["Urban heat island mapping", "Air quality prediction", "Traffic emission modeling"],
-          },
-          {
-            title: "Campuses & Universities",
-            description: "Sustainable campus management and environmental research platform",
-            features: ["Campus green score", "Research data access", "Student engagement tools"],
-          },
-          {
-            title: "Disaster Management",
-            description: "Early warning systems and emergency response coordination",
-            features: ["Flood prediction", "Fire risk assessment", "Emergency simulations"],
-          },
-          {
-            title: "ESG & Sustainability",
-            description: "Environmental compliance tracking and sustainability reporting",
-            features: ["Carbon footprint tracking", "ESG report generation", "Goal monitoring"],
-          },
-        ].map((useCase, i) => (
-          <div key={i} className="glass-card-hover p-8">
-            <h3 className="text-2xl font-bold mb-3">{useCase.title}</h3>
-            <p className="text-muted-foreground mb-6">{useCase.description}</p>
-            <ul className="space-y-2">
-              {useCase.features.map((feature, j) => (
-                <li key={j} className="flex items-center gap-2 text-sm">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
+        {/* Right: Illustration image */}
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="relative w-full max-w-xl rounded-3xl overflow-hidden border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.65)] bg-gradient-to-b from-slate-950/70 to-slate-900/70">
+            <img
+              src={builtForNeedsImage}
+              alt="Built for your needs modules preview"
+              className="w-full h-full object-cover"
+            />
           </div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-const ImpactSection = () => (
-  <section id="impact" className="py-24 relative overflow-hidden">
-    <div className="container mx-auto px-4">
-      <div className="text-center mb-16">
-        <h2 className="text-3xl sm:text-4xl font-bold mb-4">Real Impact, Real Numbers</h2>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
-          GreenGrid is making a measurable difference in communities worldwide
-        </p>
-      </div>
-
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          { value: "12,500+", label: "Risk Zones Monitored", icon: Globe },
-          { value: "1.2M", label: "Simulations Run", icon: Activity },
-          { value: "340K", label: "Tons CO₂ Reduced", icon: TreePine },
-          { value: "89", label: "Communities Impacted", icon: Users },
-        ].map((stat, i) => (
-          <div key={i} className="relative group">
-            <div className="absolute inset-0 rounded-xl bg-primary/5 blur-xl group-hover:bg-primary/10 transition-colors" />
-            <div className="relative glass-card p-6 text-center">
-              <stat.icon className="h-8 w-8 text-primary mx-auto mb-4" />
-              <div className="text-4xl font-bold gradient-text font-mono-data mb-2">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
-            </div>
-          </div>
-        ))}
+        </div>
       </div>
     </div>
   </section>
@@ -365,23 +313,69 @@ const CTASection = () => (
 );
 
 const Footer = () => (
-  <footer className="py-12 border-t border-white/5">
-    <div className="container mx-auto px-4">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500">
-            <Globe className="h-4 w-4 text-slate-950" />
+  <footer className="border-t border-white/10 bg-gradient-to-b from-background to-background/60">
+    <div className="container mx-auto px-4 py-10 md:py-12">
+      <div className="grid gap-10 md:grid-cols-[2fr,1.2fr,1.2fr] items-start">
+        {/* Brand + description */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500">
+              <Globe className="h-5 w-5 text-slate-950" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-base font-semibold tracking-tight">GreenGrid Command Center</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-[0.18em]">
+                Environmental Intelligence Platform
+              </span>
+            </div>
           </div>
-          <span className="text-lg font-bold gradient-text">GreenGrid</span>
+          <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
+            Built for the Microsoft Sustainability Hackathon — a live, operator-grade console for monitoring,
+            simulating, and acting on environmental risk in real time.
+          </p>
         </div>
-        <div className="flex items-center gap-8 text-sm text-muted-foreground">
-          <a href="#" className="hover:text-foreground transition-colors">About</a>
-          <a href="#" className="hover:text-foreground transition-colors">Documentation</a>
-          <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-          <a href="#" className="hover:text-foreground transition-colors">Terms</a>
+
+        {/* Product links */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold tracking-wide text-foreground/90">Product</h4>
+          <div className="flex flex-col space-y-2 text-sm text-muted-foreground">
+            <Link to="/dashboard" className="hover:text-foreground transition-colors">
+              Live Command Center
+            </Link>
+            <Link to="/atlas" className="hover:text-foreground transition-colors">
+              Green Grid Atlas
+            </Link>
+            <Link to="/signup" className="hover:text-foreground transition-colors">
+              Get Started
+            </Link>
+          </div>
         </div>
-        <div className="text-sm text-muted-foreground">
-          © 2025 GreenGrid. All rights reserved.
+
+        {/* About / hackathon context */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold tracking-wide text-foreground/90">About this project</h4>
+          <div className="flex flex-col space-y-2 text-sm text-muted-foreground">
+            <span className="hover:text-foreground/90 transition-colors">
+              Final-round submission · Sustainability &amp; Climate
+            </span>
+            <span className="hover:text-foreground/90 transition-colors">
+              Focused on cities, campuses, and resilience operations
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4 border-t border-white/5 pt-6">
+        <p className="text-xs text-muted-foreground">
+          © {new Date().getFullYear()} GreenGrid. Prototype for hackathon judging only — not a production service.
+        </p>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <TreePine className="h-3 w-3 text-emerald-400" />
+            <span>Simulation-first sustainability</span>
+          </span>
+          <span className="h-3 w-px bg-white/10" />
+          <span>Designed &amp; engineered for live demo</span>
         </div>
       </div>
     </div>
@@ -397,7 +391,6 @@ const Index = () => {
       <SolutionSection />
       <FeaturesSection />
       <UseCasesSection />
-      <ImpactSection />
       <CTASection />
       <Footer />
     </div>
