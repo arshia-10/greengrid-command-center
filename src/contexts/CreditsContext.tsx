@@ -21,6 +21,7 @@ export interface LeaderboardEntry {
   community: number;
   simulations: number;
   total: number;
+  impactScore: number;
   isCurrentUser: boolean;
 }
 
@@ -126,9 +127,17 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
       .map((u) => ({
         ...u,
         total: u.reports + u.community + u.simulations,
+        // Calculate impact score: assume avg impact per report/community = 15
+        impactScore: (u.reports * 15 + u.community * 10 + u.simulations * 5),
         isCurrentUser: u.email === currentEmail,
       }))
-      .sort((a, b) => b.total - a.total);
+      // Sort by Impact Score (primary), then Total (secondary)
+      .sort((a, b) => {
+        if (b.impactScore !== a.impactScore) {
+          return b.impactScore - a.impactScore;
+        }
+        return b.total - a.total;
+      });
 
     return list.map((entry, index) => ({
       rank: index + 1,
@@ -138,6 +147,7 @@ export function CreditsProvider({ children }: { children: ReactNode }) {
       community: entry.community,
       simulations: entry.simulations,
       total: entry.total,
+      impactScore: entry.impactScore,
       isCurrentUser: entry.isCurrentUser,
     }));
   }, [profile?.email, profile?.name]);

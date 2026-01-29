@@ -198,7 +198,7 @@ const Leaderboard = () => {
                 <Medal className="h-5 w-5 text-primary" />
                 Rankings
               </h2>
-              <span className="text-xs text-muted-foreground">Sorted by total credits (high → low)</span>
+              <span className="text-xs text-muted-foreground">Sorted by Impact Score (primary), Credits (secondary)</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -206,6 +206,7 @@ const Leaderboard = () => {
                   <tr className="border-b border-white/10 text-left text-xs text-muted-foreground uppercase tracking-wider">
                     <th className="py-3 px-4 font-medium w-16">Rank</th>
                     <th className="py-3 px-4 font-medium">Contributor</th>
+                    <th className="py-3 px-4 font-medium text-center w-24">Impact</th>
                     <th className="py-3 px-4 font-medium text-center w-24">Reports</th>
                     <th className="py-3 px-4 font-medium text-center w-24">Community</th>
                     <th className="py-3 px-4 font-medium text-center w-24">Simulations</th>
@@ -257,9 +258,9 @@ const Leaderboard = () => {
                           </div>
                         </div>
                       </td>
+                      <td className="py-3 px-4 text-center font-mono text-emerald-400 font-semibold">{entry.impactScore || 0}</td>
                       <td className="py-3 px-4 text-center font-mono text-muted-foreground">{entry.reports}</td>
                       <td className="py-3 px-4 text-center font-mono text-muted-foreground">{entry.community}</td>
-                      <td className="py-3 px-4 text-center font-mono text-muted-foreground">{entry.simulations}</td>
                       <td className="py-3 px-4 text-right">
                         <span className="font-semibold font-mono text-primary">{entry.total}</span>
                       </td>

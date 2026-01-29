@@ -23,11 +23,13 @@ import {
   Menu,
   X,
   Trophy,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useState, useEffect, useRef } from "react";
 import { runSimulation as runSim, saveScenarioToStorage, loadSavedScenarios } from "@/lib/simulationEngine";
+import { registerScenario, type ScenarioInput as ScenarioServiceInput } from "@/lib/scenarioService";
 import { useCredits } from "@/contexts/CreditsContext";
 import { useActivity } from "@/contexts/ActivityContext";
 import { toast } from "sonner";
@@ -152,6 +154,18 @@ const Simulations = () => {
       coolRoofs: controlValues.cooling,
     };
 
+    // Check scenario eligibility for credits
+    // NOTE: Credits are NOT awarded here - only when user exports/submits meaningful outcomes
+    const scenarioInput: ScenarioServiceInput = {
+      zone: "downtown-district", // Default zone for now
+      trees: input.treesAdded,
+      traffic: input.trafficReduced,
+      waste: input.wasteManaged,
+      cooling: input.coolRoofs,
+    };
+
+    const scenarioCheck = registerScenario(scenarioInput);
+
     const result = runSim(input, 30);
 
     setDays(result.days);
@@ -159,6 +173,15 @@ const Simulations = () => {
     setScenarioData(result.scenario);
     setDisplayedCount(1);
     setOutcomes(result.outcomes);
+
+    // Show feedback based on scenario uniqueness
+    if (scenarioCheck.isDuplicate) {
+      toast.info("No new impact detected. Try a different intervention.");
+    } else if (!scenarioCheck.creditEligible) {
+      toast.info("You can still simulate, but credits won't be awarded today (3 limit reached).");
+    } else {
+      toast.info("New scenario detected — save or export to claim impact credit.");
+    }
 
     // animate reveal over the 30 points
     let i = 1;
@@ -172,12 +195,22 @@ const Simulations = () => {
       }
     }, 60);
 
-    addCredit("simulation");
     incrementSimulations();
   };
 
   const handleSave = (name?: string) => {
     if (!days.length || !scenarioData.length) return;
+    
+    // Award credit for saving a unique scenario
+    const scenarioInput: ScenarioServiceInput = {
+      zone: "downtown-district",
+      trees: controlValues.trees,
+      traffic: controlValues.traffic,
+      waste: controlValues.waste,
+      cooling: controlValues.cooling,
+    };
+    const scenarioCheck = registerScenario(scenarioInput, true); // true = will generate action plan via save
+
     const entry = saveScenarioToStorage({ name, input: {
       treesAdded: controlValues.trees,
       trafficReduced: controlValues.traffic,
@@ -185,7 +218,14 @@ const Simulations = () => {
       coolRoofs: controlValues.cooling,
     }, result: { days, baseline: baselineData, scenario: scenarioData, outcomes } });
     setSaved((s) => [entry, ...s].slice(0, 20));
-    toast.success("Scenario saved");
+    
+    // Award credit if scenario is unique and eligible
+    if (scenarioCheck.creditEligible) {
+      addCredit("scenario_save");
+      toast.success("Scenario saved — +1 impact credit awarded for unique intervention.");
+    } else {
+      toast.success("Scenario saved");
+    }
   };
 
   const handleLoadSaved = (id: string) => {
@@ -368,7 +408,12 @@ const Simulations = () => {
             {/* Right: Scenario controls */}
             <div className="space-y-6">
               <div className="glass-card p-4">
-                <h2 className="font-semibold mb-4">Scenario Setup</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-semibold">Scenario Setup</h2>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-help" title="Credits are awarded for unique, impactful actions — not repeated simulations. Save scenarios to claim impact credit.">
+                    <Info className="h-4 w-4" />
+                  </div>
+                </div>
                 <div className="space-y-5">
                   {scenarioControls.map((control) => (
                     <div key={control.id}>
