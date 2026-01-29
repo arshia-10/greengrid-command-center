@@ -31,10 +31,13 @@ import {
   Leaf,
   Heart,
   Trophy,
+  AlertCircle,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useDigitalTwin } from "@/hooks/useDigitalTwin";
 
 const sidebarLinks = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
@@ -47,25 +50,13 @@ const sidebarLinks = [
   { icon: User, label: "Profile", href: "/profile" },
 ];
 
-const controls = [
-  { id: "trees", label: "Tree Coverage", icon: TreePine, value: 34, unit: "%", color: "text-emerald-400" },
-  { id: "traffic", label: "Traffic Density", icon: Car, value: 65, unit: "%", color: "text-orange-400" },
-  { id: "rainfall", label: "Rainfall Stress", icon: CloudRain, value: 20, unit: "mm", color: "text-blue-400" },
-  { id: "industry", label: "Industrial Output", icon: Factory, value: 45, unit: "%", color: "text-yellow-400" },
-  { id: "waste", label: "Waste Mismanagement", icon: Trash2, value: 15, unit: "%", color: "text-red-400" },
-];
 
-const environmentalState = [
-  { label: "Air Quality Index", current: 72, predicted: 68, change: -4, unit: "AQI" },
-  { label: "Temperature", current: 32, predicted: 31, change: -1, unit: "°C" },
-  { label: "CO₂ Levels", current: 420, predicted: 395, change: -25, unit: "ppm" },
-  { label: "Humidity", current: 65, predicted: 68, change: 3, unit: "%" },
-];
-
-const impactMetrics = [
-  { label: "Sustainability Index", value: 72, change: 8, icon: Leaf, color: "text-emerald-400" },
-  { label: "Health Impact Score", value: 85, change: 5, icon: Heart, color: "text-pink-400" },
-  { label: "Energy Efficiency", value: 68, change: 12, icon: Zap, color: "text-yellow-400" },
+const controlConfig = [
+  { id: "treeCoverage", label: "Tree Coverage", icon: TreePine, unit: "%", color: "text-emerald-400", max: 100 },
+  { id: "trafficDensity", label: "Traffic Density", icon: Car, unit: "%", color: "text-orange-400", max: 100 },
+  { id: "rainfallStress", label: "Rainfall Stress", icon: CloudRain, unit: "mm", color: "text-blue-400", max: 100 },
+  { id: "industrialOutput", label: "Industrial Output", icon: Factory, unit: "%", color: "text-yellow-400", max: 100 },
+  { id: "wasteMismanagement", label: "Waste Mismanagement", icon: Trash2, unit: "%", color: "text-red-400", max: 100 },
 ];
 
 const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => (
@@ -127,23 +118,39 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 );
 
 const DigitalTwin = () => {
+  const { state, updateControl, runSimulation, reset, isSimulating } = useDigitalTwin();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [controlValues, setControlValues] = useState<Record<string, number>>({
-    trees: 34,
-    traffic: 65,
-    rainfall: 20,
-    industry: 45,
-    waste: 15,
-  });
-  const [isSimulating, setIsSimulating] = useState(false);
+  const [heatmapIntensity, setHeatmapIntensity] = useState(state.riskProfile.overallStress);
 
-  const handleControlChange = (id: string, value: number[]) => {
-    setControlValues((prev) => ({ ...prev, [id]: value[0] }));
+  // Update heatmap intensity when risk changes
+  useEffect(() => {
+    setHeatmapIntensity(state.riskProfile.overallStress);
+  }, [state.riskProfile.overallStress]);
+
+  // Map control key names
+  const getControlValue = (key: string) => {
+    return state.controls[key as keyof typeof state.controls] || 0;
   };
 
-  const runSimulation = () => {
-    setIsSimulating(true);
-    setTimeout(() => setIsSimulating(false), 2000);
+  // Calculate delta between current and predicted
+  const getDelta = (current: number, predicted: number | null, decimals = 1) => {
+    if (!predicted) return 0;
+    const delta = predicted - current;
+    return delta.toFixed(decimals);
+  };
+
+  const getChangeIcon = (delta: number | string) => {
+    const val = typeof delta === "string" ? parseFloat(delta) : delta;
+    if (val > 0.5) return <TrendingUp className="h-5 w-5 text-red-400" />;
+    if (val < -0.5) return <TrendingDown className="h-5 w-5 text-emerald-400" />;
+    return <Minus className="h-5 w-5 text-muted-foreground" />;
+  };
+
+  const getChangeColor = (delta: number | string) => {
+    const val = typeof delta === "string" ? parseFloat(delta) : delta;
+    if (val > 0.5) return "text-red-400";
+    if (val < -0.5) return "text-emerald-400";
+    return "text-muted-foreground";
   };
 
   return (
@@ -197,9 +204,9 @@ const DigitalTwin = () => {
                     <Map className="h-8 w-8 text-orange-400" />
                   </div>
                   <div>
-                    <h3 className="font-medium">Downtown District</h3>
-                    <p className="text-sm text-muted-foreground">Area: 12.4 km²</p>
-                    <p className="text-sm text-muted-foreground">Population: 145,000</p>
+                    <h3 className="font-medium">{state.zoneInfo.name}</h3>
+                    <p className="text-sm text-muted-foreground">Area: {state.zoneInfo.area} km²</p>
+                    <p className="text-sm text-muted-foreground">Population: {state.zoneInfo.population.toLocaleString()}</p>
                   </div>
                 </div>
                 <Button variant="glass" size="sm" className="w-full" asChild>
@@ -211,7 +218,7 @@ const DigitalTwin = () => {
               <div className="glass-card p-4">
                 <h2 className="font-semibold mb-4">Simulation Controls</h2>
                 <div className="space-y-6">
-                  {controls.map((control) => (
+                  {controlConfig.map((control) => (
                     <div key={control.id}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -219,13 +226,13 @@ const DigitalTwin = () => {
                           <span className="text-sm">{control.label}</span>
                         </div>
                         <span className="text-sm font-mono-data">
-                          {controlValues[control.id]}{control.unit}
+                          {getControlValue(control.id)}{control.unit}
                         </span>
                       </div>
                       <Slider
-                        value={[controlValues[control.id]]}
-                        onValueChange={(value) => handleControlChange(control.id, value)}
-                        max={100}
+                        value={[getControlValue(control.id)]}
+                        onValueChange={(value) => updateControl(control.id as any, value[0])}
+                        max={control.max}
                         step={1}
                         className="w-full"
                       />
@@ -255,7 +262,7 @@ const DigitalTwin = () => {
                   )}
                 </Button>
                 <div className="grid grid-cols-2 gap-3">
-                  <Button variant="glass" size="sm">
+                  <Button variant="glass" size="sm" onClick={reset}>
                     <RotateCcw className="h-4 w-4 mr-1" />
                     Reset
                   </Button>
@@ -275,11 +282,31 @@ const DigitalTwin = () => {
                 <div className="aspect-video rounded-lg bg-gradient-to-br from-secondary/50 to-background relative overflow-hidden">
                   <div className="absolute inset-0 grid-pattern opacity-30" />
                   
-                  {/* Simulated heatmap zones */}
-                  <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full bg-red-500/30 blur-xl" />
-                  <div className="absolute top-1/3 right-1/3 w-40 h-40 rounded-full bg-orange-500/30 blur-xl" />
-                  <div className="absolute bottom-1/4 left-1/3 w-36 h-36 rounded-full bg-yellow-500/30 blur-xl" />
-                  <div className="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full bg-emerald-500/30 blur-xl" />
+                  {/* Dynamic heatmap zones — intensity based on stress */}
+                  <div
+                    className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full blur-xl transition-all duration-500"
+                    style={{
+                      backgroundColor: `rgba(239, 68, 68, ${Math.max(0.1, heatmapIntensity / 100 * 0.4)})`,
+                    }}
+                  />
+                  <div
+                    className="absolute top-1/3 right-1/3 w-40 h-40 rounded-full blur-xl transition-all duration-500"
+                    style={{
+                      backgroundColor: `rgba(249, 115, 22, ${Math.max(0.1, (heatmapIntensity * 0.8) / 100 * 0.4)})`,
+                    }}
+                  />
+                  <div
+                    className="absolute bottom-1/4 left-1/3 w-36 h-36 rounded-full blur-xl transition-all duration-500"
+                    style={{
+                      backgroundColor: `rgba(234, 179, 8, ${Math.max(0.1, (heatmapIntensity * 0.6) / 100 * 0.4)})`,
+                    }}
+                  />
+                  <div
+                    className="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full blur-xl transition-all duration-500"
+                    style={{
+                      backgroundColor: `rgba(34, 197, 94, ${Math.max(0.1, (100 - heatmapIntensity) / 100 * 0.4)})`,
+                    }}
+                  />
 
                   {/* Grid overlay */}
                   <svg className="absolute inset-0 w-full h-full opacity-20">
@@ -327,6 +354,21 @@ const DigitalTwin = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Overall Stress Indicator */}
+                  <div className="absolute top-4 left-4 glass-card p-3">
+                    <div className="text-xs text-muted-foreground mb-1">Overall Stress</div>
+                    <div className="text-2xl font-bold font-mono-data">{state.riskProfile.overallStress.toFixed(0)}</div>
+                    <div className="w-24 h-1 rounded-full bg-white/10 mt-2">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${state.riskProfile.overallStress}%`,
+                          backgroundColor: state.riskProfile.overallStress > 70 ? "#ef4444" : state.riskProfile.overallStress > 40 ? "#f59e0b" : "#22c55e",
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -334,39 +376,93 @@ const DigitalTwin = () => {
               <div className="glass-card p-4">
                 <h2 className="font-semibold mb-4">Live vs. Predicted Comparison</h2>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {environmentalState.map((metric, i) => (
-                    <div key={i} className="p-4 rounded-lg bg-white/5">
-                      <div className="text-sm text-muted-foreground mb-2">{metric.label}</div>
-                      <div className="flex items-end justify-between">
-                        <div>
-                          <div className="text-xs text-muted-foreground">Current</div>
-                          <div className="text-xl font-bold font-mono-data">
-                            {metric.current}{metric.unit}
-                          </div>
+                  <div className="p-4 rounded-lg bg-white/5">
+                    <div className="text-sm text-muted-foreground mb-2">Air Quality Index</div>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Current</div>
+                        <div className="text-xl font-bold font-mono-data">{state.live.aqi.toFixed(0)} AQI</div>
+                      </div>
+                      <div className="text-center px-4">
+                        {getChangeIcon(getDelta(state.live.aqi, state.predicted?.aqi))}
+                        <div className={`text-sm font-medium ${getChangeColor(getDelta(state.live.aqi, state.predicted?.aqi))}`}>
+                          {getDelta(state.live.aqi, state.predicted?.aqi) > 0 ? "+" : ""}{getDelta(state.live.aqi, state.predicted?.aqi)}
                         </div>
-                        <div className="text-center px-4">
-                          {metric.change > 0 ? (
-                            <TrendingUp className="h-5 w-5 text-red-400 mx-auto" />
-                          ) : metric.change < 0 ? (
-                            <TrendingDown className="h-5 w-5 text-emerald-400 mx-auto" />
-                          ) : (
-                            <Minus className="h-5 w-5 text-muted-foreground mx-auto" />
-                          )}
-                          <div className={`text-sm font-medium ${
-                            metric.change > 0 ? "text-red-400" : metric.change < 0 ? "text-emerald-400" : "text-muted-foreground"
-                          }`}>
-                            {metric.change > 0 ? "+" : ""}{metric.change}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-muted-foreground">Predicted</div>
-                          <div className="text-xl font-bold font-mono-data text-cyan-400">
-                            {metric.predicted}{metric.unit}
-                          </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">Predicted</div>
+                        <div className="text-xl font-bold font-mono-data text-cyan-400">
+                          {state.predicted?.aqi.toFixed(0) || "—"} AQI
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-white/5">
+                    <div className="text-sm text-muted-foreground mb-2">Temperature</div>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Current</div>
+                        <div className="text-xl font-bold font-mono-data">{state.live.temperature.toFixed(1)}°C</div>
+                      </div>
+                      <div className="text-center px-4">
+                        {getChangeIcon(getDelta(state.live.temperature, state.predicted?.temperature))}
+                        <div className={`text-sm font-medium ${getChangeColor(getDelta(state.live.temperature, state.predicted?.temperature))}`}>
+                          {getDelta(state.live.temperature, state.predicted?.temperature) > 0 ? "+" : ""}{getDelta(state.live.temperature, state.predicted?.temperature)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">Predicted</div>
+                        <div className="text-xl font-bold font-mono-data text-cyan-400">
+                          {state.predicted?.temperature.toFixed(1) || "—"}°C
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-white/5">
+                    <div className="text-sm text-muted-foreground mb-2">CO₂ Levels</div>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Current</div>
+                        <div className="text-xl font-bold font-mono-data">{state.live.co2.toFixed(0)} ppm</div>
+                      </div>
+                      <div className="text-center px-4">
+                        {getChangeIcon(getDelta(state.live.co2, state.predicted?.co2, 0))}
+                        <div className={`text-sm font-medium ${getChangeColor(getDelta(state.live.co2, state.predicted?.co2, 0))}`}>
+                          {getDelta(state.live.co2, state.predicted?.co2, 0) > 0 ? "+" : ""}{getDelta(state.live.co2, state.predicted?.co2, 0)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">Predicted</div>
+                        <div className="text-xl font-bold font-mono-data text-cyan-400">
+                          {state.predicted?.co2.toFixed(0) || "—"} ppm
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-white/5">
+                    <div className="text-sm text-muted-foreground mb-2">Humidity</div>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Current</div>
+                        <div className="text-xl font-bold font-mono-data">{state.live.humidity.toFixed(0)}%</div>
+                      </div>
+                      <div className="text-center px-4">
+                        {getChangeIcon(getDelta(state.live.humidity, state.predicted?.humidity))}
+                        <div className={`text-sm font-medium ${getChangeColor(getDelta(state.live.humidity, state.predicted?.humidity))}`}>
+                          {getDelta(state.live.humidity, state.predicted?.humidity) > 0 ? "+" : ""}{getDelta(state.live.humidity, state.predicted?.humidity)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">Predicted</div>
+                        <div className="text-xl font-bold font-mono-data text-cyan-400">
+                          {state.predicted?.humidity.toFixed(0) || "—"}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -374,14 +470,26 @@ const DigitalTwin = () => {
               <div className="glass-card p-4">
                 <h2 className="font-semibold mb-4">Projected Impact</h2>
                 <div className="grid grid-cols-3 gap-4">
-                  {impactMetrics.map((metric, i) => (
-                    <div key={i} className="text-center p-4 rounded-lg bg-white/5">
-                      <metric.icon className={`h-8 w-8 mx-auto mb-2 ${metric.color}`} />
-                      <div className="text-2xl font-bold font-mono-data">{metric.value}</div>
-                      <div className="text-xs text-muted-foreground mb-1">{metric.label}</div>
-                      <div className="text-sm text-emerald-400">+{metric.change}%</div>
-                    </div>
-                  ))}
+                  <div className="text-center p-4 rounded-lg bg-white/5">
+                    <Leaf className="h-8 w-8 mx-auto mb-2 text-emerald-400" />
+                    <div className="text-2xl font-bold font-mono-data">{state.live.sustainabilityIndex.toFixed(0)}</div>
+                    <div className="text-xs text-muted-foreground mb-1">Sustainability Index</div>
+                    <div className="text-sm text-emerald-400">+{(state.predicted?.sustainabilityIndex ? Math.max(0, state.predicted.sustainabilityIndex - state.live.sustainabilityIndex) : 0).toFixed(0)}%</div>
+                  </div>
+
+                  <div className="text-center p-4 rounded-lg bg-white/5">
+                    <Heart className="h-8 w-8 mx-auto mb-2 text-pink-400" />
+                    <div className="text-2xl font-bold font-mono-data">{state.live.healthImpactScore.toFixed(0)}</div>
+                    <div className="text-xs text-muted-foreground mb-1">Health Impact Score</div>
+                    <div className="text-sm text-emerald-400">+{(state.predicted?.healthImpactScore ? Math.max(0, state.predicted.healthImpactScore - state.live.healthImpactScore) : 0).toFixed(0)}%</div>
+                  </div>
+
+                  <div className="text-center p-4 rounded-lg bg-white/5">
+                    <Zap className="h-8 w-8 mx-auto mb-2 text-yellow-400" />
+                    <div className="text-2xl font-bold font-mono-data">{state.live.energyEfficiency.toFixed(0)}</div>
+                    <div className="text-xs text-muted-foreground mb-1">Energy Efficiency</div>
+                    <div className="text-sm text-emerald-400">+{(state.predicted?.energyEfficiency ? Math.max(0, state.predicted.energyEfficiency - state.live.energyEfficiency) : 0).toFixed(0)}%</div>
+                  </div>
                 </div>
               </div>
 
@@ -396,6 +504,40 @@ const DigitalTwin = () => {
                   Export Impact Report
                 </Button>
               </div>
+
+              {/* Action Recommendations */}
+              {state.recommendations.length > 0 && (
+                <div className="glass-card p-4">
+                  <h2 className="font-semibold mb-4">AI-Generated Action Plan</h2>
+                  <div className="space-y-3">
+                    {state.recommendations.map((action, i) => (
+                      <div key={i} className="p-3 rounded-lg border border-white/10 bg-white/5">
+                        <div className="flex items-start gap-3">
+                          <div className="text-2xl">{action.icon}</div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium">{action.title}</h3>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                  action.priority === "critical"
+                                    ? "bg-red-500/20 text-red-300"
+                                    : action.priority === "high"
+                                    ? "bg-orange-500/20 text-orange-300"
+                                    : "bg-blue-500/20 text-blue-300"
+                                }`}
+                              >
+                                {action.priority}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">{action.description}</p>
+                            <div className="text-xs text-emerald-400 font-medium">Expected: {action.expectedImpact}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </main>
