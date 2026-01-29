@@ -50,9 +50,11 @@ const Login = () => {
 
         <div className="relative flex w-full flex-col justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 shadow-[0_0_28px_hsl(160_84%_39%/_0.18)]">
-              <Globe className="h-5 w-5 text-slate-950" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="GreenGrid logo"
+              className="h-11 w-auto rounded-2xl shadow-[0_0_28px_hsl(160_84%_39%/_0.18)]"
+            />
             <div>
               <div className="text-sm text-muted-foreground">GreenGrid</div>
               <div className="font-semibold tracking-tight">Personal climate intelligence</div>
@@ -88,9 +90,7 @@ const Login = () => {
             <span className="text-sm">Back to home</span>
           </Link>
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500">
-              <Globe className="h-4 w-4 text-slate-950" />
-            </div>
+            <img src="/logo.png" alt="GreenGrid logo" className="h-8 w-auto rounded-lg" />
             <span className="text-lg font-bold gradient-text">GreenGrid</span>
           </Link>
         </div>

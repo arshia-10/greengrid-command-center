@@ -7,10 +7,12 @@ import builtForNeedsImage from "@/assets/built-for-needs.png";
 const Navbar = () => (
   <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/80 backdrop-blur-xl">
     <div className="container mx-auto flex h-16 items-center justify-between px-4">
-      <Link to="/" className="flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500">
-          <Globe className="h-5 w-5 text-slate-950" />
-        </div>
+      <Link to="/" className="flex items-center gap-3">
+        <img
+          src="/logo.png"
+          alt="GreenGrid logo"
+          className="h-10 w-auto rounded-lg shadow-[0_0_24px_rgba(16,185,129,0.45)]"
+        />
         <span className="text-xl font-bold gradient-text">GreenGrid</span>
       </Link>
       <div className="hidden md:flex items-center gap-8">
@@ -319,9 +321,11 @@ const Footer = () => (
         {/* Brand + description */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500">
-              <Globe className="h-5 w-5 text-slate-950" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="GreenGrid logo"
+              className="h-9 w-auto rounded-lg shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+            />
             <div className="flex flex-col">
               <span className="text-base font-semibold tracking-tight">GreenGrid Command Center</span>
               <span className="text-xs text-muted-foreground uppercase tracking-[0.18em]">

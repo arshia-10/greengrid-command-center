@@ -51,10 +51,12 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
     <aside className={`fixed lg:sticky top-0 left-0 h-screen w-64 bg-sidebar border-r border-white/5 z-50 transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
       <div className="flex flex-col h-full p-4">
         <div className="flex items-center justify-between mb-8 px-2">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500">
-              <Globe className="h-5 w-5 text-slate-950" />
-            </div>
+          <Link to="/" className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="GreenGrid logo"
+              className="h-9 w-auto rounded-lg shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+            />
             <span className="text-lg font-bold gradient-text">GreenGrid</span>
           </Link>
           <button onClick={onClose} className="lg:hidden text-muted-foreground hover:text-foreground">

@@ -20,7 +20,6 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-<<<<<<< Updated upstream
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
@@ -54,33 +53,36 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/simulations"
+              element={
+                <ProtectedRoute>
+                  <Simulations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ProtectedRoute>
+                  <Reports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/community"
+              element={
+                <ProtectedRoute>
+                  <Community />
+                </ProtectedRoute>
+              }
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
-=======
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/atlas" element={<Atlas />} />
-          <Route path="/digital-twin" element={<DigitalTwin />} />
-          <Route path="/simulations" element={<Simulations />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/community" element={<Community />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
->>>>>>> Stashed changes
   </QueryClientProvider>
 );
 
