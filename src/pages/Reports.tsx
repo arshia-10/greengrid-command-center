@@ -32,6 +32,7 @@ import { useState, useRef, useEffect } from "react";
 import { db, auth } from "@/firebase";
 import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { useActivity } from "@/contexts/ActivityContext";
 
 // db may be mock (firebase.ts); type assertion allows Firestore API when real Firebase is used
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,6 +117,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 const Reports = () => {
   const { addCredit } = useCredits();
   const { addNotification } = useNotifications();
+  const { incrementReports } = useActivity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentReports, setRecentReports] = useState(initialReports);
   
@@ -211,6 +213,7 @@ const Reports = () => {
       }
 
       addCredit("report");
+      incrementReports();
       setIsSubmittingText(false);
       setTextSubmitSuccess(true);
       setReportTitle("");
@@ -291,6 +294,7 @@ const Reports = () => {
       }
 
       addCredit("report");
+      incrementReports();
       setIsPdfUploading(false);
       setPdfUploadSuccess(true);
       setPdfTitle("");

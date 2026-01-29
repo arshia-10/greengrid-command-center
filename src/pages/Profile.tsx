@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Globe,
   Map,
@@ -20,18 +20,18 @@ import {
   MapPin,
   TrendingUp,
   Zap,
-  MessageCircle,
-  Clock,
-  Calendar,
+  Info,
   Award,
   Target,
   Trophy,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useActivity } from "@/contexts/ActivityContext";
 
 const sidebarLinks = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
@@ -116,6 +116,8 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 
 const Profile = () => {
   const { profile, updateProfile } = useAuth();
+  const { activity, isNewUser, getActiveDaysCount, getImpactScore } = useActivity();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
@@ -139,17 +141,6 @@ const Profile = () => {
       setPan(profile.pan || "");
     }
   }, [profile]);
-
-  // Mock activity data
-  const activityStats = {
-    simulationsRun: 12,
-    reportsSubmitted: 8,
-    communityReports: 15,
-    activeDays: 23,
-    lastActive: "2 hours ago",
-    memberSince: "Jan 2024",
-    totalImpact: 47,
-  };
 
   const handleSave = () => {
     const aadhaarDigits = aadhaar.replace(/\D/g, "");
@@ -178,7 +169,7 @@ const Profile = () => {
   const formatAadhaar = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 12);
     return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
-  };
+  };;
 
   const formatPan = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
 
@@ -242,12 +233,14 @@ const Profile = () => {
                   )}
                 </div>
                 <div className="mt-4 text-center md:text-left">
-                  <div className="flex items-center gap-2 justify-center md:justify-start">
-                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      Active
-                    </span>
-                    <span className="text-xs text-muted-foreground">Last active {activityStats.lastActive}</span>
-                  </div>
+                  {/* Only show if user has activity */}
+                  {!isNewUser && (
+                    <div className="flex items-center gap-2 justify-center md:justify-start">
+                      <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Active
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -422,141 +415,94 @@ const Profile = () => {
           </div>
 
           {/* Environment Dashboard */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                Environment Dashboard
-              </h2>
-              <span className="text-xs text-muted-foreground">Your activity and impact metrics</span>
+          {isNewUser() ? (
+            // ZERO STATE - New User
+            <div className="glass-card p-12 md:p-16 text-center">
+              <div className="flex justify-center mb-6">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
+                  <Globe className="h-10 w-10 text-slate-950" />
+                </div>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">Welcome to GreenGrid</h2>
+              <p className="text-muted-foreground max-w-md mx-auto mb-8">
+                Your impact profile will appear once you run simulations or generate reports.
+              </p>
+              <Button 
+                size="lg"
+                className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold"
+                onClick={() => navigate("/simulations")}
+              >
+                <Activity className="h-5 w-5 mr-2" />
+                Run Your First Simulation
+              </Button>
             </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Simulations Run */}
-              <div className="glass-card p-5 hover:bg-white/5 transition-colors group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center group-hover:bg-cyan-500/20 transition-colors">
-                    <Activity className="h-6 w-6 text-cyan-400" />
-                  </div>
-                  <Link to="/simulations" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                    View all →
-                  </Link>
-                </div>
-                <div className="text-3xl font-bold font-mono-data mb-1">{activityStats.simulationsRun}</div>
-                <div className="text-sm text-muted-foreground mb-2">Simulations Run</div>
-                <div className="flex items-center gap-1 text-xs text-emerald-400">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>+3 this month</span>
+          ) : (
+            // ACTIVE USER STATE - Show real metrics only
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  Impact Metrics
+                </h2>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground cursor-help" title="Metrics update based on simulations and reports created by the user.">
+                  <Info className="h-4 w-4" />
+                  <span>Real data only</span>
                 </div>
               </div>
 
-              {/* Reports Submitted */}
-              <div className="glass-card p-5 hover:bg-white/5 transition-colors group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
-                    <FileText className="h-6 w-6 text-emerald-400" />
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Simulations Run */}
+                <div className="glass-card p-5 hover:bg-white/5 transition-colors group">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center group-hover:bg-cyan-500/20 transition-colors">
+                      <Activity className="h-6 w-6 text-cyan-400" />
+                    </div>
+                    <Link to="/simulations" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                      View →
+                    </Link>
                   </div>
-                  <Link to="/reports" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                    View all →
-                  </Link>
+                  <div className="text-3xl font-bold font-mono-data mb-1">{activity.simulationsRun}</div>
+                  <div className="text-sm text-muted-foreground">Simulations Run</div>
                 </div>
-                <div className="text-3xl font-bold font-mono-data mb-1">{activityStats.reportsSubmitted}</div>
-                <div className="text-sm text-muted-foreground mb-2">Reports Submitted</div>
-                <div className="flex items-center gap-1 text-xs text-emerald-400">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>+2 this week</span>
-                </div>
-              </div>
 
-              {/* Community Reports */}
-              <div className="glass-card p-5 hover:bg-white/5 transition-colors group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <MessageCircle className="h-6 w-6 text-primary" />
+                {/* Reports Generated */}
+                <div className="glass-card p-5 hover:bg-white/5 transition-colors group">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                      <FileText className="h-6 w-6 text-emerald-400" />
+                    </div>
+                    <Link to="/reports" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                      View →
+                    </Link>
                   </div>
-                  <Link to="/community" className="text-xs text-muted-foreground hover:text-primary transition-colors">
-                    View all →
-                  </Link>
+                  <div className="text-3xl font-bold font-mono-data mb-1">{activity.reportsGenerated}</div>
+                  <div className="text-sm text-muted-foreground">Reports Generated</div>
                 </div>
-                <div className="text-3xl font-bold font-mono-data mb-1">{activityStats.communityReports}</div>
-                <div className="text-sm text-muted-foreground mb-2">Community Reports</div>
-                <div className="flex items-center gap-1 text-xs text-emerald-400">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>+5 this week</span>
-                </div>
-              </div>
 
-              {/* Active Days */}
-              <div className="glass-card p-5 hover:bg-white/5 transition-colors">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                    <Calendar className="h-6 w-6 text-yellow-400" />
+                {/* Active Days */}
+                <div className="glass-card p-5 hover:bg-white/5 transition-colors">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                      <Calendar className="h-6 w-6 text-yellow-400" />
+                    </div>
                   </div>
+                  <div className="text-3xl font-bold font-mono-data mb-1">{getActiveDaysCount()}</div>
+                  <div className="text-sm text-muted-foreground">Active Days</div>
                 </div>
-                <div className="text-3xl font-bold font-mono-data mb-1">{activityStats.activeDays}</div>
-                <div className="text-sm text-muted-foreground mb-2">Active Days This Month</div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  <span>Member since {activityStats.memberSince}</span>
-                </div>
-              </div>
 
-              {/* Total Impact */}
-              <div className="glass-card p-5 hover:bg-white/5 transition-colors">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                    <Target className="h-6 w-6 text-purple-400" />
+                {/* Impact Score */}
+                <div className="glass-card p-5 hover:bg-white/5 transition-colors">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                      <Target className="h-6 w-6 text-purple-400" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-3xl font-bold font-mono-data mb-1">{activityStats.totalImpact}</div>
-                <div className="text-sm text-muted-foreground mb-2">Total Impact Score</div>
-                <div className="flex items-center gap-1 text-xs text-emerald-400">
-                  <Zap className="h-3 w-3" />
-                  <span>High engagement</span>
-                </div>
-              </div>
-
-              {/* Activity Streak */}
-              <div className="glass-card p-5 hover:bg-white/5 transition-colors">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                    <Award className="h-6 w-6 text-orange-400" />
-                  </div>
-                </div>
-                <div className="text-3xl font-bold font-mono-data mb-1">7</div>
-                <div className="text-sm text-muted-foreground mb-2">Day Streak</div>
-                <div className="flex items-center gap-1 text-xs text-emerald-400">
-                  <Zap className="h-3 w-3" />
-                  <span>Keep it up!</span>
+                  <div className="text-3xl font-bold font-mono-data mb-1">{getImpactScore()}</div>
+                  <div className="text-sm text-muted-foreground">Impact Score</div>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Activity Summary */}
-          <div className="glass-card p-6">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Activity Summary
-            </h3>
-            <div className="grid md:grid-cols-3 gap-4 text-sm">
-              <div className="p-4 rounded-lg bg-white/5">
-                <div className="text-xs text-muted-foreground mb-1">Most Active Feature</div>
-                <div className="font-medium">Community Reports</div>
-                <div className="text-xs text-muted-foreground mt-1">15 submissions this month</div>
-              </div>
-              <div className="p-4 rounded-lg bg-white/5">
-                <div className="text-xs text-muted-foreground mb-1">Peak Activity</div>
-                <div className="font-medium">Tuesday, 2:00 PM</div>
-                <div className="text-xs text-muted-foreground mt-1">Most productive time</div>
-              </div>
-              <div className="p-4 rounded-lg bg-white/5">
-                <div className="text-xs text-muted-foreground mb-1">Engagement Level</div>
-                <div className="font-medium text-emerald-400">Highly Active</div>
-                <div className="text-xs text-muted-foreground mt-1">Top 15% of users</div>
-              </div>
-            </div>
-          </div>
+          )}
         </main>
       </div>
     </div>

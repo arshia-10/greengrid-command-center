@@ -19,6 +19,10 @@ interface UserProfile {
   campus?: string;
   aadhaar?: string;
   pan?: string;
+  // Activity tracking - real user metrics only
+  simulationsRun?: number;
+  reportsSubmitted?: number;
+  totalImpactScore?: number;
 }
 
 interface AuthContextType {
@@ -54,6 +58,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           campus: firestoreData.campus || "",
           aadhaar: firestoreData.aadhaar || "",
           pan: firestoreData.pan || "",
+          simulationsRun: firestoreData.simulationsRun ?? 0,
+          reportsSubmitted: firestoreData.reportsSubmitted ?? 0,
+          totalImpactScore: firestoreData.totalImpactScore ?? 0,
         };
         setProfile(profile);
         // Update localStorage with latest Firestore data

@@ -29,6 +29,7 @@ import { Slider } from "@/components/ui/slider";
 import { useState, useEffect, useRef } from "react";
 import { runSimulation as runSim, saveScenarioToStorage, loadSavedScenarios } from "@/lib/simulationEngine";
 import { useCredits } from "@/contexts/CreditsContext";
+import { useActivity } from "@/contexts/ActivityContext";
 import { toast } from "sonner";
 
 const sidebarLinks = [
@@ -115,6 +116,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 
 const Simulations = () => {
   const { addCredit } = useCredits();
+  const { incrementSimulations } = useActivity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [controlValues, setControlValues] = useState<Record<string, number>>(
     Object.fromEntries(scenarioControls.map((c) => [c.id, c.defaultValue]))
@@ -171,7 +173,7 @@ const Simulations = () => {
     }, 60);
 
     addCredit("simulation");
-    toast.success("Scenario run complete — +1 credit added to your leaderboard standing.");
+    incrementSimulations();
   };
 
   const handleSave = (name?: string) => {

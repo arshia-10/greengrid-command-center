@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CreditsProvider } from "./contexts/CreditsContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { ActivityProvider } from "./contexts/ActivityContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import VerifyEmail from "./pages/VerifyEmail";
 
@@ -29,25 +30,26 @@ const App = () => (
     <AuthProvider>
       <NotificationProvider>
         <CreditsProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true,
-          }}
-        >
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
+          <ActivityProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
               }
             />
             <Route
@@ -119,7 +121,8 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-            </TooltipProvider>
+              </TooltipProvider>
+          </ActivityProvider>
         </CreditsProvider>
       </NotificationProvider>
     </AuthProvider>
