@@ -26,7 +26,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { runSimulation as runSim, saveScenarioToStorage, loadSavedScenarios } from "@/lib/simulationEngine";
 import { useCredits } from "@/contexts/CreditsContext";
 import { toast } from "sonner";
 
@@ -119,8 +120,89 @@ const Simulations = () => {
     Object.fromEntries(scenarioControls.map((c) => [c.id, c.defaultValue]))
   );
 
+  // Simulation data & state
+  const [days, setDays] = useState<string[]>([]);
+  const [baselineData, setBaselineData] = useState<number[]>([]);
+  const [scenarioData, setScenarioData] = useState<number[]>([]);
+  const [displayedCount, setDisplayedCount] = useState(0);
+  const [isRunningSim, setIsRunningSim] = useState(false);
+  const [outcomes, setOutcomes] = useState({ aqiImprovementPct: 0, heatReductionC: 0, waterStressReliefPct: 0 });
+  const [saved, setSaved] = useState(loadSavedScenarios());
+  const animRef = useRef<number | null>(null);
+
   const handleControlChange = (id: string, value: number[]) => {
     setControlValues((prev) => ({ ...prev, [id]: value[0] }));
+  };
+
+  useEffect(() => {
+    // cleanup on unmount
+    return () => {
+      if (animRef.current) window.clearInterval(animRef.current);
+    };
+  }, []);
+
+  const handleRun = () => {
+    setIsRunningSim(true);
+    const input = {
+      treesAdded: controlValues.trees,
+      trafficReduced: controlValues.traffic,
+      wasteManaged: controlValues.waste,
+      coolRoofs: controlValues.cooling,
+    };
+
+    const result = runSim(input, 30);
+
+    setDays(result.days);
+    setBaselineData(result.baseline);
+    setScenarioData(result.scenario);
+    setDisplayedCount(1);
+    setOutcomes(result.outcomes);
+
+    // animate reveal over the 30 points
+    let i = 1;
+    if (animRef.current) window.clearInterval(animRef.current);
+    animRef.current = window.setInterval(() => {
+      i += 1;
+      setDisplayedCount(i);
+      if (i >= result.days.length) {
+        if (animRef.current) window.clearInterval(animRef.current);
+        setIsRunningSim(false);
+      }
+    }, 60);
+
+    addCredit("simulation");
+    toast.success("Scenario run complete — +1 credit added to your leaderboard standing.");
+  };
+
+  const handleSave = (name?: string) => {
+    if (!days.length || !scenarioData.length) return;
+    const entry = saveScenarioToStorage({ name, input: {
+      treesAdded: controlValues.trees,
+      trafficReduced: controlValues.traffic,
+      wasteManaged: controlValues.waste,
+      coolRoofs: controlValues.cooling,
+    }, result: { days, baseline: baselineData, scenario: scenarioData, outcomes } });
+    setSaved((s) => [entry, ...s].slice(0, 20));
+    toast.success("Scenario saved");
+  };
+
+  const handleLoadSaved = (id: string) => {
+    const item = loadSavedScenarios().find((s) => s.id === id);
+    if (!item) return;
+    // restore controls
+    setControlValues({
+      trees: item.input.treesAdded,
+      traffic: item.input.trafficReduced,
+      waste: item.input.wasteManaged,
+      cooling: item.input.coolRoofs,
+    } as Record<string, number>);
+    // restore result (show instantly)
+    setDays(item.result.days);
+    setBaselineData(item.result.baseline);
+    setScenarioData(item.result.scenario);
+    setDisplayedCount(item.result.days.length);
+    setOutcomes(item.result.outcomes);
+    toast.success("Scenario restored");
   };
 
   return (
@@ -183,23 +265,57 @@ const Simulations = () => {
                 {/* Simple schematic chart */}
                 <div className="relative h-56 rounded-xl bg-gradient-to-b from-secondary/60 to-background overflow-hidden">
                   <div className="absolute inset-0 grid-pattern opacity-30" />
-                  <svg className="absolute inset-0 w-full h-full">
-                    {/* Baseline line */}
-                    <polyline
-                      points="0,120 60,130 120,135 180,138 240,140 300,142 360,145"
-                      fill="none"
-                      stroke="hsl(0 84% 60%)"
-                      strokeWidth="2"
-                      strokeDasharray="4 4"
-                    />
-                    {/* Scenario line */}
-                    <polyline
-                      points="0,115 60,110 120,108 180,100 240,96 300,94 360,92"
-                      fill="none"
-                      stroke="hsl(160 84% 39%)"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                    />
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 140" preserveAspectRatio="none">
+                    {/* dynamic polylines built from arrays */}
+                    {baselineData.length > 0 && (
+                      <polyline
+                        points={(() => {
+                          const pts: string[] = [];
+                          const len = Math.max(1, baselineData.length);
+                          const visible = Math.max(1, Math.min(displayedCount, len));
+                          const min = Math.min(...baselineData, ...(scenarioData.length ? scenarioData : []));
+                          const max = Math.max(...baselineData, ...(scenarioData.length ? scenarioData : []));
+                          const w = 580; // padding
+                          const h = 100;
+                          for (let i = 0; i < visible; i++) {
+                            const x = (i / Math.max(1, len - 1)) * w + 10;
+                            const v = baselineData[i] as number;
+                            const y = max === min ? 20 + h / 2 : 20 + h - ((v - min) / (max - min)) * h;
+                            pts.push(`${x},${y}`);
+                          }
+                          return pts.join(" ");
+                        })()}
+                        fill="none"
+                        stroke="hsl(0 84% 60%)"
+                        strokeWidth="2"
+                        strokeDasharray="4 4"
+                      />
+                    )}
+
+                    {scenarioData.length > 0 && (
+                      <polyline
+                        points={(() => {
+                          const pts: string[] = [];
+                          const len = Math.max(1, scenarioData.length);
+                          const visible = Math.max(1, Math.min(displayedCount, len));
+                          const min = Math.min(...scenarioData, ...(baselineData.length ? baselineData : []));
+                          const max = Math.max(...scenarioData, ...(baselineData.length ? baselineData : []));
+                          const w = 580;
+                          const h = 100;
+                          for (let i = 0; i < visible; i++) {
+                            const x = (i / Math.max(1, len - 1)) * w + 10;
+                            const v = scenarioData[i] as number;
+                            const y = max === min ? 20 + h / 2 : 20 + h - ((v - min) / (max - min)) * h;
+                            pts.push(`${x},${y}`);
+                          }
+                          return pts.join(" ");
+                        })()}
+                        fill="none"
+                        stroke="hsl(160 84% 39%)"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+                    )}
                   </svg>
                   <div className="absolute bottom-3 left-3 flex items-center gap-3 text-xs">
                     <div className="flex items-center gap-1">
@@ -217,16 +333,32 @@ const Simulations = () => {
               <div className="glass-card p-4">
                 <h2 className="font-semibold mb-4">Key Outcomes</h2>
                 <div className="grid sm:grid-cols-3 gap-4">
-                  {keyOutcomes.map((outcome) => (
-                    <div key={outcome.label} className="p-3 rounded-lg bg-white/5">
-                      <div className="flex items-center gap-2 mb-2">
-                        <outcome.icon className="h-4 w-4 text-primary" />
-                        <span className="text-xs text-muted-foreground">{outcome.label}</span>
-                      </div>
-                      <div className="text-xl font-bold font-mono-data mb-1">{outcome.value}</div>
-                      <div className="text-xs text-muted-foreground">{outcome.detail}</div>
+                  <div className="p-3 rounded-lg bg-white/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Wind className="h-4 w-4 text-primary" />
+                      <span className="text-xs text-muted-foreground">AQI Improvement</span>
                     </div>
-                  ))}
+                    <div className="text-xl font-bold font-mono-data mb-1">{outcomes.aqiImprovementPct}%</div>
+                    <div className="text-xs text-muted-foreground">Estimated improvement vs baseline</div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-white/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Thermometer className="h-4 w-4 text-primary" />
+                      <span className="text-xs text-muted-foreground">Heat Stress Reduction</span>
+                    </div>
+                    <div className="text-xl font-bold font-mono-data mb-1">{outcomes.heatReductionC}°C</div>
+                    <div className="text-xs text-muted-foreground">Peak afternoon reduction</div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-white/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Droplets className="h-4 w-4 text-primary" />
+                      <span className="text-xs text-muted-foreground">Water Stress Relief</span>
+                    </div>
+                    <div className="text-xl font-bold font-mono-data mb-1">{outcomes.waterStressReliefPct}%</div>
+                    <div className="text-xs text-muted-foreground">Projected relief over baseline</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -259,36 +391,54 @@ const Simulations = () => {
                     </div>
                   ))}
                 </div>
-                <Button
-                  variant="hero"
-                  className="w-full mt-6"
-                  onClick={() => {
-                    addCredit("simulation");
-                    toast.success("Scenario run complete — +1 credit added to your leaderboard standing.");
-                  }}
-                >
+                <Button variant="hero" className="w-full mt-6" onClick={handleRun}>
                   <Play className="h-4 w-4 mr-2" />
                   Run Scenario on Digital Twin
                 </Button>
+
+                {days.length > 0 && (
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      className="flex-1 p-2 rounded-lg bg-white/5 text-sm"
+                      onClick={() => handleSave()}
+                    >
+                      Save Scenario
+                    </button>
+                    <button
+                      className="p-2 rounded-lg bg-white/5 text-sm"
+                      onClick={() => {
+                        setDays([]);
+                        setBaselineData([]);
+                        setScenarioData([]);
+                        setDisplayedCount(0);
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="glass-card p-4">
                 <h2 className="font-semibold mb-3">Saved Scenarios</h2>
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
-                    <div className="flex flex-col">
-                      <span className="font-medium">Summer Heat + Trees</span>
-                      <span className="text-xs text-muted-foreground">Downtown · Last run: 2 days ago</span>
+                  {saved.length === 0 && (
+                    <div className="text-xs text-muted-foreground">No saved scenarios yet. Run a scenario and click Save.</div>
+                  )}
+                  {saved.map((s) => (
+                    <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                      <div className="flex flex-col">
+                        <button className="text-left" onClick={() => handleLoadSaved(s.id)}>
+                          <span className="font-medium">{s.name}</span>
+                          <div className="text-xs text-muted-foreground">{new Date(s.createdAt).toLocaleString()}</div>
+                        </button>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-emerald-400">{s.result.outcomes.heatReductionC}°C</div>
+                        <div className="text-xs text-muted-foreground">{s.result.outcomes.aqiImprovementPct}% AQI</div>
+                      </div>
                     </div>
-                    <span className="text-xs text-emerald-400">-2.1°C peak</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
-                    <div className="flex flex-col">
-                      <span className="font-medium">Traffic Restriction Pilot</span>
-                      <span className="text-xs text-muted-foreground">Industrial zone · Last run: 5 days ago</span>
-                    </div>
-                    <span className="text-xs text-emerald-400">-14% AQI</span>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
