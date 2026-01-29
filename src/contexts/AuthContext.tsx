@@ -1,6 +1,11 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, startTransition } from "react";
 import { auth } from "@/firebase";
-import { User, onAuthStateChanged } from "firebase/auth";
+
+interface User {
+  uid: string;
+  email: string | null;
+  emailVerified: boolean;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -15,9 +20,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
+    // Subscribe to auth state changes
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      // Use startTransition to wrap state updates (fixes React Router warning)
+      startTransition(() => {
+        setUser(currentUser);
+        setLoading(false);
+      });
     });
 
     return unsubscribe;

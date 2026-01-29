@@ -4,7 +4,6 @@ import { ArrowLeft, Eye, EyeOff, Globe, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/firebase";
 
 const Login = () => {
@@ -27,7 +26,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await auth.signInWithEmailAndPassword(auth, email, password);
       navigate("/dashboard");
     } catch (err: any) {
       setError(err.message || "Failed to sign in");

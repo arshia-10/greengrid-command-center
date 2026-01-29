@@ -1,5 +1,3 @@
-import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase";
 
 
@@ -58,21 +56,21 @@ const Signup = () => {
     
     try {
       // Create user with email and password
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await auth.createUserWithEmailAndPassword(auth, email, password);
       
       // Store user data in Firestore
-      await setDoc(doc(db, "users", userCredential.user.uid), {
+      await db.collection("users").doc(userCredential.user.uid).set({
         uid: userCredential.user.uid,
         name,
         email,
         organization: organization || "",
         intent: selectedIntent,
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
         emailVerified: false,
       });
       
       // Send verification email
-      await sendEmailVerification(userCredential.user);
+      await auth.sendEmailVerification(userCredential.user);
       
       // Redirect to dashboard on successful signup (user is already authenticated)
       navigate("/dashboard");
