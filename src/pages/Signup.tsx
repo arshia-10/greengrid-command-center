@@ -16,6 +16,18 @@ const intents = [
   { id: "simulate", label: "Simulate sustainability actions", icon: PlayCircle },
   { id: "learn", label: "Learn & research environmental data", icon: BookOpen },
 ] as const;
+
+// Map intent to role for profile
+const mapIntentToRole = (intent: string): string => {
+  const intentMap: Record<string, string> = {
+    monitor: "climate-explorer",
+    risks: "climate-explorer",
+    simulate: "campus-operator",
+    learn: "researcher",
+  };
+  return intentMap[intent] || "climate-explorer";
+};
+
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedIntent, setSelectedIntent] =
@@ -68,6 +80,17 @@ const Signup = () => {
         createdAt: new Date().toISOString(),
         emailVerified: false,
       });
+
+      // Also store in localStorage for demo purposes
+      const userProfile = {
+        name,
+        email,
+        organization: organization || "",
+        intent: selectedIntent,
+        role: mapIntentToRole(selectedIntent),
+        campus: organization || "", // Map organization to campus
+      };
+      localStorage.setItem("greengrid_user_profile", JSON.stringify(userProfile));
       
       // Send verification email
       await auth.sendEmailVerification(userCredential.user);
