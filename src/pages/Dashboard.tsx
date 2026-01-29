@@ -6,7 +6,6 @@ import {
   FileText,
   Users,
   User,
-  Bell,
   ChevronDown,
   AlertTriangle,
   Thermometer,
@@ -25,6 +24,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { useState, useEffect } from "react";
 import { db } from "@/firebase";
 import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
@@ -128,10 +128,7 @@ const TopBar = ({ onMenuClick }: { onMenuClick: () => void }) => (
         <button onClick={onMenuClick} className="lg:hidden text-muted-foreground hover:text-foreground">
           <Menu className="h-6 w-6" />
         </button>
-        <div>
-          <h1 className="text-lg font-semibold">Mission Control</h1>
-          <p className="text-xs text-muted-foreground">Real-time environmental intelligence</p>
-        </div>
+        <h1 className="text-lg font-semibold">GreenGrid</h1>
       </div>
 
       <div className="flex items-center gap-3">
@@ -140,10 +137,7 @@ const TopBar = ({ onMenuClick }: { onMenuClick: () => void }) => (
           <span className="text-xs font-medium text-primary">Live</span>
         </div>
         
-        <button className="relative p-2 rounded-lg hover:bg-white/5 transition-colors">
-          <Bell className="h-5 w-5 text-muted-foreground" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-        </button>
+        <NotificationDropdown />
 
         <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">

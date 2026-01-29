@@ -18,6 +18,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CreditsProvider } from "./contexts/CreditsContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import VerifyEmail from "./pages/VerifyEmail";
 
@@ -26,11 +27,12 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <CreditsProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter
+      <NotificationProvider>
+        <CreditsProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter
           future={{
             v7_startTransition: true,
             v7_relativeSplatPath: true,
@@ -117,8 +119,9 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
-      </CreditsProvider>
+            </TooltipProvider>
+        </CreditsProvider>
+      </NotificationProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, startTransition } from "react";
 import { auth } from "@/firebase";
+import { db } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 interface User {
   uid: string;
@@ -34,15 +36,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load profile from localStorage
-  const loadProfile = () => {
+  // Load profile from localStorage and Firestore
+  const loadProfile = async (uid: string) => {
     try {
-      const stored = localStorage.getItem("greengrid_user_profile");
-      if (stored) {
-        setProfile(JSON.parse(stored));
+      // First try to load from Firestore
+      const docRef = doc(db, "users", uid);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const firestoreData = docSnap.data();
+        const profile = {
+          name: firestoreData.name || "",
+          email: firestoreData.email || "",
+          organization: firestoreData.organization || "",
+          intent: firestoreData.intent || "",
+          role: firestoreData.role || "",
+          region: firestoreData.region || "",
+          campus: firestoreData.campus || "",
+          aadhaar: firestoreData.aadhaar || "",
+          pan: firestoreData.pan || "",
+        };
+        setProfile(profile);
+        // Update localStorage with latest Firestore data
+        try {
+          localStorage.setItem("greengrid_user_profile", JSON.stringify(profile));
+        } catch (error) {
+          console.error("Failed to update localStorage:", error);
+        }
+      } else {
+        // Fallback to localStorage
+        const stored = localStorage.getItem("greengrid_user_profile");
+        if (stored) {
+          setProfile(JSON.parse(stored));
+        }
       }
     } catch (error) {
-      console.error("Failed to load profile:", error);
+      console.error("Failed to load profile from Firestore:", error);
+      // Fallback to localStorage
+      try {
+        const stored = localStorage.getItem("greengrid_user_profile");
+        if (stored) {
+          setProfile(JSON.parse(stored));
+        }
+      } catch (localError) {
+        console.error("Failed to load profile from localStorage:", localError);
+      }
     }
   };
 
@@ -61,10 +98,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Subscribe to auth state changes
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       // Use startTransition to wrap state updates (fixes React Router warning)
-      startTransition(() => {
+      startTransition(async () => {
         setUser(currentUser);
         if (currentUser) {
-          loadProfile();
+          await loadProfile(currentUser.uid);
         } else {
           setProfile(null);
         }

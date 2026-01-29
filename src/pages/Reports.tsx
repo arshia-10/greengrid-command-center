@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useRef, useEffect } from "react";
 import { db, auth } from "@/firebase";
 import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
+import { useNotifications } from "@/contexts/NotificationContext";
 
 // db may be mock (firebase.ts); type assertion allows Firestore API when real Firebase is used
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -114,6 +115,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 
 const Reports = () => {
   const { addCredit } = useCredits();
+  const { addNotification } = useNotifications();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentReports, setRecentReports] = useState(initialReports);
   
@@ -182,6 +184,14 @@ const Reports = () => {
         };
         setRecentReports((prev) => [reportWithId, ...prev]);
         console.log("Report saved to Firebase with ID:", docRef.id);
+        
+        // Add notification
+        addNotification({
+          type: "report",
+          title: "New Report Submitted",
+          message: `"${reportTitle}" has been added successfully`,
+          data: reportWithId,
+        });
       } catch (firestoreError) {
         console.error("Firebase error:", firestoreError);
         // Still add locally if Firebase fails
@@ -190,6 +200,14 @@ const Reports = () => {
           ...newReport,
         };
         setRecentReports((prev) => [reportWithId, ...prev]);
+        
+        // Add notification for local add
+        addNotification({
+          type: "report",
+          title: "New Report Submitted",
+          message: `"${reportTitle}" has been added`,
+          data: reportWithId,
+        });
       }
 
       addCredit("report");
@@ -246,6 +264,14 @@ const Reports = () => {
         };
         setRecentReports((prev) => [reportWithId, ...prev]);
         console.log("PDF report saved to Firebase with ID:", docRef.id);
+        
+        // Trigger notification
+        addNotification({
+          type: "report",
+          title: "PDF Report Uploaded",
+          message: `"${newReport.name}" has been uploaded successfully`,
+          data: reportWithId,
+        });
       } catch (firestoreError) {
         console.error("Firebase error:", firestoreError);
         // Still add locally if Firebase fails
@@ -254,6 +280,14 @@ const Reports = () => {
           ...newReport,
         };
         setRecentReports((prev) => [reportWithId, ...prev]);
+        
+        // Trigger notification for local fallback
+        addNotification({
+          type: "report",
+          title: "PDF Report Added",
+          message: `"${newReport.name}" has been added to your reports`,
+          data: reportWithId,
+        });
       }
 
       addCredit("report");
