@@ -1,3 +1,10 @@
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../firebase";
+
+
+
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Globe, ArrowLeft, Eye, EyeOff, Mail, Lock, User, Building2, ShieldCheck, CloudSun, TriangleAlert, PlayCircle, BookOpen } from "lucide-react";
@@ -11,15 +18,70 @@ const intents = [
   { id: "simulate", label: "Simulate sustainability actions", icon: PlayCircle },
   { id: "learn", label: "Learn & research environmental data", icon: BookOpen },
 ] as const;
-
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedIntent, setSelectedIntent] = useState<(typeof intents)[number]["id"] | null>(null);
+  const [selectedIntent, setSelectedIntent] =
+    useState<(typeof intents)[number]["id"] | null>(null);
+
+  // 🔐 Firebase form state
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/dashboard");
+    setError("");
+    
+    // Basic validation
+    if (!name || !email || !password) {
+      setError("Please fill in all required fields");
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+    
+    if (!selectedIntent) {
+      setError("Please select how you'll use GreenGrid");
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      // Create user with email and password
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Store user data in Firestore
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        uid: userCredential.user.uid,
+        name,
+        email,
+        organization: organization || "",
+        intent: selectedIntent,
+        createdAt: serverTimestamp(),
+        emailVerified: false,
+      });
+      
+      // Send verification email
+      await sendEmailVerification(userCredential.user);
+      
+      // Redirect to dashboard on successful signup (user is already authenticated)
+      navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Failed to create account");
+      console.error("Signup error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -95,6 +157,9 @@ const Signup = () => {
                     <Input
                       id="name"
                       placeholder="John Doe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      disabled={loading}
                       className="pl-10 rounded-xl bg-secondary/30 border-white/10 focus-visible:ring-primary/60 focus-visible:ring-offset-0"
                     />
                   </div>
@@ -108,6 +173,9 @@ const Signup = () => {
                       id="email"
                       type="email"
                       placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
                       className="pl-10 rounded-xl bg-secondary/30 border-white/10 focus-visible:ring-primary/60 focus-visible:ring-offset-0"
                     />
                   </div>
@@ -120,6 +188,9 @@ const Signup = () => {
                     <Input
                       id="organization"
                       placeholder="Your organization"
+                      value={organization}
+                      onChange={(e) => setOrganization(e.target.value)}
+                      disabled={loading}
                       className="pl-10 rounded-xl bg-secondary/30 border-white/10 focus-visible:ring-primary/60 focus-visible:ring-offset-0"
                     />
                   </div>
@@ -133,11 +204,15 @@ const Signup = () => {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
                       className="pl-10 pr-10 rounded-xl bg-secondary/30 border-white/10 focus-visible:ring-primary/60 focus-visible:ring-offset-0"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
+                      disabled={loading}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -145,8 +220,13 @@ const Signup = () => {
                   </div>
                 </div>
 
-                <Button variant="hero" className="w-full" size="lg" type="submit">
-                  Enter GreenGrid
+                {error && (
+                  <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
+                    {error}
+                  </div>
+                )}
+                <Button variant="hero" className="w-full" size="lg" type="submit" disabled={loading}>
+                  {loading ? "Creating account..." : "Enter GreenGrid"}
                 </Button>
                 <p className="text-xs text-muted-foreground">
                   No complex setup. GreenGrid adapts as you grow.

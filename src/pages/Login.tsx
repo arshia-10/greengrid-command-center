@@ -4,14 +4,37 @@ import { ArrowLeft, Eye, EyeOff, Globe, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/firebase";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/dashboard");
+    setError("");
+
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Failed to sign in");
+      console.error("Login error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -93,6 +116,9 @@ const Login = () => {
                       id="email"
                       type="email"
                       placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
                       className="pl-10 rounded-xl bg-secondary/30 border-white/10 focus-visible:ring-primary/60 focus-visible:ring-offset-0"
                     />
                   </div>
@@ -111,11 +137,15 @@ const Login = () => {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
                       className="pl-10 pr-10 rounded-xl bg-secondary/30 border-white/10 focus-visible:ring-primary/60 focus-visible:ring-offset-0"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
+                      disabled={loading}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -123,8 +153,14 @@ const Login = () => {
                   </div>
                 </div>
 
-                <Button variant="hero" className="w-full" size="lg" type="submit">
-                  Enter GreenGrid
+                {error && (
+                  <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
+                    {error}
+                  </div>
+                )}
+
+                <Button variant="hero" className="w-full" size="lg" type="submit" disabled={loading}>
+                  {loading ? "Signing in..." : "Enter GreenGrid"}
                 </Button>
                 <p className="text-xs text-muted-foreground">Secure sign-in. Climate-first. We never sell your data.</p>
               </form>
