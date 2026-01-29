@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/firebase";
-import { sendEmailVerification } from "firebase/auth";
 
 const VerifyEmail = () => {
   const location = useLocation();
@@ -54,7 +53,7 @@ const VerifyEmail = () => {
     }
     setResendLoading(true);
     try {
-      await sendEmailVerification(auth.currentUser);
+      await auth.sendEmailVerification(auth.currentUser);
       setMessage("Verification email resent — check your inbox.");
     } catch (err) {
       console.error(err);

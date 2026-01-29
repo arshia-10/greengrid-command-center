@@ -12,10 +12,12 @@ import DigitalTwin from "./pages/DigitalTwin";
 import Simulations from "./pages/Simulations";
 import Reports from "./pages/Reports";
 import Community from "./pages/Community";
+import Leaderboard from "./pages/Leaderboard";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
+import { CreditsProvider } from "./contexts/CreditsContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import VerifyEmail from "./pages/VerifyEmail";
 
@@ -24,6 +26,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <CreditsProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -85,7 +88,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-<<<<<<< Updated upstream
+            <Route
+              path="/leaderboard"
+              element={
+                <ProtectedRoute>
+                  <Leaderboard />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/profile"
               element={
@@ -102,14 +112,13 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-=======
             <Route path="/verify-email" element={<VerifyEmail />} />
->>>>>>> Stashed changes
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </CreditsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

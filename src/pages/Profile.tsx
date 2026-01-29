@@ -25,6 +25,7 @@ import {
   Calendar,
   Award,
   Target,
+  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ const sidebarLinks = [
   { icon: Activity, label: "Simulations", href: "/simulations" },
   { icon: FileText, label: "Reports", href: "/reports" },
   { icon: Users, label: "Community", href: "/community" },
+  { icon: Trophy, label: "Leaderboard", href: "/leaderboard" },
   { icon: User, label: "Profile", href: "/profile", active: true },
 ];
 

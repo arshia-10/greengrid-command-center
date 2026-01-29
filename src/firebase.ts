@@ -8,6 +8,21 @@ const notifyAuthStateChange = (user: any) => {
   authStateListeners.forEach((listener) => listener(user));
 };
 
+function createMockUser(uid: string, email: string, emailVerified = false) {
+  return {
+    uid,
+    email,
+    emailVerified,
+    reload: async () => {
+      if (currentUser && currentUser.uid === uid) {
+        currentUser = { ...currentUser, emailVerified: true };
+      }
+      return Promise.resolve();
+    },
+    getIdToken: async () => Promise.resolve("demo-id-token"),
+  };
+}
+
 export const auth = {
   get currentUser() {
     return currentUser;
@@ -15,11 +30,7 @@ export const auth = {
   signInWithEmailAndPassword: async (_auth: any, email: string, password: string) => {
     // Mock authentication - always succeeds for demo
     console.log("Demo mode: Sign in with", email);
-    const user = { 
-      uid: "demo-user-" + Date.now(), 
-      email: email,
-      emailVerified: false 
-    };
+    const user = createMockUser("demo-user-" + Date.now(), email, false);
     currentUser = user;
     // Notify listeners of auth state change
     notifyAuthStateChange(user);
@@ -28,11 +39,7 @@ export const auth = {
   createUserWithEmailAndPassword: async (_auth: any, email: string, password: string) => {
     // Mock user creation - always succeeds for demo
     console.log("Demo mode: Create user with", email);
-    const user = { 
-      uid: "demo-user-" + Date.now(), 
-      email: email,
-      emailVerified: false 
-    };
+    const user = createMockUser("demo-user-" + Date.now(), email, false);
     currentUser = user;
     // Notify listeners of auth state change
     notifyAuthStateChange(user);
@@ -91,8 +98,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-<<<<<<< Updated upstream
 */
-=======
-export const storage = getStorage(app); 
->>>>>>> Stashed changes

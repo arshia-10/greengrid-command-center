@@ -24,12 +24,18 @@ import {
   Upload,
   Loader2,
   CheckCircle,
+  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useRef, useEffect } from "react";
 import { db, auth } from "@/firebase";
 import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
+
+// db may be mock (firebase.ts); type assertion allows Firestore API when real Firebase is used
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const firestoreDb = db as any;
+import { useCredits } from "@/contexts/CreditsContext";
 
 const sidebarLinks = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
@@ -38,6 +44,7 @@ const sidebarLinks = [
   { icon: Activity, label: "Simulations", href: "/simulations" },
   { icon: FileText, label: "Reports", href: "/reports", active: true },
   { icon: Users, label: "Community", href: "/community" },
+  { icon: Trophy, label: "Leaderboard", href: "/leaderboard" },
   { icon: User, label: "Profile", href: "/profile" },
 ];
 
@@ -106,6 +113,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 );
 
 const Reports = () => {
+  const { addCredit } = useCredits();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentReports, setRecentReports] = useState(initialReports);
   
@@ -125,7 +133,7 @@ const Reports = () => {
   useEffect(() => {
     const loadReports = async () => {
       try {
-        const q = query(collection(db, "reports"), orderBy("createdAt", "desc"));
+        const q = query(collection(firestoreDb, "reports"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
         const firestoreReports = querySnapshot.docs.map((doc) => ({
           id: doc.id,
@@ -167,7 +175,7 @@ const Reports = () => {
 
       // Save to Firebase
       try {
-        const docRef = await addDoc(collection(db, "reports"), newReport);
+        const docRef = await addDoc(collection(firestoreDb, "reports"), newReport);
         const reportWithId = {
           id: docRef.id,
           ...newReport,
@@ -184,6 +192,7 @@ const Reports = () => {
         setRecentReports((prev) => [reportWithId, ...prev]);
       }
 
+      addCredit("report");
       setIsSubmittingText(false);
       setTextSubmitSuccess(true);
       setReportTitle("");
@@ -230,7 +239,7 @@ const Reports = () => {
       };
 
       try {
-        const docRef = await addDoc(collection(db, "reports"), newReport);
+        const docRef = await addDoc(collection(firestoreDb, "reports"), newReport);
         const reportWithId = {
           id: docRef.id,
           ...newReport,
@@ -247,6 +256,7 @@ const Reports = () => {
         setRecentReports((prev) => [reportWithId, ...prev]);
       }
 
+      addCredit("report");
       setIsPdfUploading(false);
       setPdfUploadSuccess(true);
       setPdfTitle("");

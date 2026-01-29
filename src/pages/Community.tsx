@@ -28,12 +28,14 @@ import {
   Eye,
   Zap,
   TrendingUp,
+  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useRef, useEffect } from "react";
+import { useCredits } from "@/contexts/CreditsContext";
 
 const sidebarLinks = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
@@ -42,6 +44,7 @@ const sidebarLinks = [
   { icon: Activity, label: "Simulations", href: "/simulations" },
   { icon: FileText, label: "Reports", href: "/reports" },
   { icon: Users, label: "Community", href: "/community", active: true },
+  { icon: Trophy, label: "Leaderboard", href: "/leaderboard" },
   { icon: User, label: "Profile", href: "/profile" },
 ];
 
@@ -52,6 +55,7 @@ const initialReports = [
 ];
 
 const Community = () => {
+  const { addCredit } = useCredits();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentReports, setRecentReports] = useState(initialReports);
   
@@ -144,6 +148,7 @@ const Community = () => {
     };
 
     setRecentReports((prev) => [newReport, ...prev]);
+    addCredit("community");
     
     // Reset form
     setCurrentStep(1);

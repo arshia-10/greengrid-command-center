@@ -22,10 +22,13 @@ import {
   LogOut,
   Menu,
   X,
+  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useState } from "react";
+import { useCredits } from "@/contexts/CreditsContext";
+import { toast } from "sonner";
 
 const sidebarLinks = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
@@ -34,6 +37,7 @@ const sidebarLinks = [
   { icon: Activity, label: "Simulations", href: "/simulations", active: true },
   { icon: FileText, label: "Reports", href: "/reports" },
   { icon: Users, label: "Community", href: "/community" },
+  { icon: Trophy, label: "Leaderboard", href: "/leaderboard" },
   { icon: User, label: "Profile", href: "/profile" },
 ];
 
@@ -109,6 +113,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 );
 
 const Simulations = () => {
+  const { addCredit } = useCredits();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [controlValues, setControlValues] = useState<Record<string, number>>(
     Object.fromEntries(scenarioControls.map((c) => [c.id, c.defaultValue]))
@@ -254,7 +259,14 @@ const Simulations = () => {
                     </div>
                   ))}
                 </div>
-                <Button variant="hero" className="w-full mt-6">
+                <Button
+                  variant="hero"
+                  className="w-full mt-6"
+                  onClick={() => {
+                    addCredit("simulation");
+                    toast.success("Scenario run complete — +1 credit added to your leaderboard standing.");
+                  }}
+                >
                   <Play className="h-4 w-4 mr-2" />
                   Run Scenario on Digital Twin
                 </Button>

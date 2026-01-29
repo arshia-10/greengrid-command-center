@@ -30,6 +30,7 @@ import {
   Zap,
   Leaf,
   Heart,
+  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -42,6 +43,7 @@ const sidebarLinks = [
   { icon: Activity, label: "Simulations", href: "/simulations" },
   { icon: FileText, label: "Reports", href: "/reports" },
   { icon: Users, label: "Community", href: "/community" },
+  { icon: Trophy, label: "Leaderboard", href: "/leaderboard" },
   { icon: User, label: "Profile", href: "/profile" },
 ];
 

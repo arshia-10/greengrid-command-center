@@ -77,13 +77,8 @@ const Signup = () => {
         email,
         organization: organization || "",
         intent: selectedIntent,
-<<<<<<< Updated upstream
         createdAt: new Date().toISOString(),
         emailVerified: false,
-=======
-        createdAt: serverTimestamp(),
-        
->>>>>>> Stashed changes
       });
 
       // Also store in localStorage for demo purposes
@@ -96,20 +91,12 @@ const Signup = () => {
         campus: organization || "", // Map organization to campus
       };
       localStorage.setItem("greengrid_user_profile", JSON.stringify(userProfile));
-      
-<<<<<<< Updated upstream
+
       // Send verification email
       await auth.sendEmailVerification(userCredential.user);
-      
-      // Redirect to dashboard on successful signup (user is already authenticated)
-      navigate("/dashboard");
-=======
-        // Send verification email
-        await sendEmailVerification(userCredential.user);
 
-        // After sending verification, navigate to a verification waiting page
-        navigate("/verify-email", { state: { email: email } });
->>>>>>> Stashed changes
+      // Navigate to verification waiting page
+      navigate("/verify-email", { state: { email } });
     } catch (err: any) {
       setError(err.message || "Failed to create account");
       console.error("Signup error:", err);
