@@ -4,6 +4,7 @@ import { ArrowLeft, Eye, EyeOff, Globe, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { signInWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
 import { auth } from "@/firebase";
 
 const Login = () => {
@@ -36,7 +37,32 @@ const Login = () => {
     setVerificationSent(false);
 
     try {
-      await auth.signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        // Try to resend verification email
+        try {
+          await sendEmailVerification(user);
+          setVerificationSent(true);
+        } catch (sendErr: any) {
+          console.error("Failed to send verification email:", sendErr);
+          setVerificationError(sendErr?.message || "Failed to send verification email");
+        }
+
+        // Sign out unverified user to prevent access
+        try {
+          await signOut(auth);
+        } catch (signOutErr) {
+          console.warn("Sign out after unverified login failed:", signOutErr);
+        }
+
+        setError("Email not verified. A verification link was (re)sent — please check your inbox and verify before logging in.");
+        setLoading(false);
+        return;
+      }
+
+      // Verified — proceed
       navigate("/dashboard");
     } catch (err: any) {
       setError(err.message || "Failed to sign in");

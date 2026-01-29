@@ -21,10 +21,13 @@ import {
   LogOut,
   Menu,
   X,
+  CheckCircle2,
   Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { db } from "@/firebase";
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 
 const sidebarLinks = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard", active: true },
@@ -155,6 +158,27 @@ const TopBar = ({ onMenuClick }: { onMenuClick: () => void }) => (
 
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [latestReports, setLatestReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLatestReports = async () => {
+      try {
+        const q = query(collection(db, "reports"), orderBy("createdAt", "desc"), limit(3));
+        const querySnapshot = await getDocs(q);
+        const reports = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setLatestReports(reports);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLatestReports();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -164,40 +188,40 @@ const Dashboard = () => {
         <TopBar onMenuClick={() => setSidebarOpen(true)} />
         
         <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-auto">
-          {/* Alerts Panel */}
+          {/* Latest Reports Panel */}
           <div className="glass-card p-4">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold flex items-center gap-2">
-                <Bell className="h-4 w-4 text-primary" />
-                Live Alerts
+                <FileText className="h-4 w-4 text-primary" />
+                Latest Reports
               </h2>
-              <span className="text-xs text-muted-foreground">Last updated: just now</span>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/reports" className="flex items-center gap-1">
+                  View All
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
             </div>
-            <div className="space-y-2">
-              {alertsData.map((alert, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center gap-3 p-3 rounded-lg ${
-                    alert.type === "critical"
-                      ? "bg-destructive/10 border border-destructive/20"
-                      : alert.type === "warning"
-                      ? "bg-yellow-500/10 border border-yellow-500/20"
-                      : "bg-primary/5 border border-primary/10"
-                  }`}
-                >
-                  <AlertTriangle
-                    className={`h-4 w-4 flex-shrink-0 ${
-                      alert.type === "critical"
-                        ? "text-destructive"
-                        : alert.type === "warning"
-                        ? "text-yellow-500"
-                        : "text-primary"
-                    }`}
-                  />
-                  <span className="flex-1 text-sm">{alert.message}</span>
-                  <span className="text-xs text-muted-foreground">{alert.time}</span>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {loading ? (
+                <p className="text-xs text-muted-foreground text-center py-4">Loading reports...</p>
+              ) : latestReports.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No reports yet</p>
+              ) : (
+                latestReports.map((report: any) => (
+                  <div key={report.id} className="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                    <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-1" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{report.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{report.type}</div>
+                      {report.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{report.description}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{report.status}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

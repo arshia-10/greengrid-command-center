@@ -1,8 +1,6 @@
 import { auth, db } from "../firebase";
-
-
-
-
+import { sendEmailVerification, createUserWithEmailAndPassword } from "firebase/auth";
+import { collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Globe, ArrowLeft, Eye, EyeOff, Mail, Lock, User, Building2, ShieldCheck, CloudSun, TriangleAlert, PlayCircle, BookOpen } from "lucide-react";
@@ -68,17 +66,16 @@ const Signup = () => {
     
     try {
       // Create user with email and password
-      const userCredential = await auth.createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       // Store user data in Firestore
-      await db.collection("users").doc(userCredential.user.uid).set({
+      await setDoc(doc(db, "users", userCredential.user.uid), {
         uid: userCredential.user.uid,
         name,
         email,
         organization: organization || "",
         intent: selectedIntent,
-        createdAt: new Date().toISOString(),
-        emailVerified: false,
+        createdAt: serverTimestamp(),
       });
 
       // Also store in localStorage for demo purposes
@@ -93,10 +90,10 @@ const Signup = () => {
       localStorage.setItem("greengrid_user_profile", JSON.stringify(userProfile));
 
       // Send verification email
-      await auth.sendEmailVerification(userCredential.user);
+      await sendEmailVerification(userCredential.user);
 
-      // Navigate to verification waiting page
-      navigate("/verify-email", { state: { email } });
+      // After sending verification, navigate to a verification waiting page
+      navigate("/verify-email", { state: { email: email } });
     } catch (err: any) {
       setError(err.message || "Failed to create account");
       console.error("Signup error:", err);
