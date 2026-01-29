@@ -38,6 +38,8 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useState, useEffect } from "react";
 import { useDigitalTwin } from "@/hooks/useDigitalTwin";
+import { ZONE_DATA, generateAndDownloadImpactReport, GridCell } from "@/lib/digitalTwinEngine";
+import { ZoneImpactGrid } from "@/components/ZoneImpactGrid";
 
 const sidebarLinks = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
@@ -120,12 +122,12 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 const DigitalTwin = () => {
   const { state, updateControl, runSimulation, reset, isSimulating } = useDigitalTwin();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [heatmapIntensity, setHeatmapIntensity] = useState(state.riskProfile.overallStress);
+  const [heatmapIntensity, setHeatmapIntensity] = useState(state.stress.overallStress);
 
-  // Update heatmap intensity when risk changes
+  // Update heatmap intensity when stress changes
   useEffect(() => {
-    setHeatmapIntensity(state.riskProfile.overallStress);
-  }, [state.riskProfile.overallStress]);
+    setHeatmapIntensity(state.stress.overallStress);
+  }, [state.stress.overallStress]);
 
   // Map control key names
   const getControlValue = (key: string) => {
@@ -204,9 +206,9 @@ const DigitalTwin = () => {
                     <Map className="h-8 w-8 text-orange-400" />
                   </div>
                   <div>
-                    <h3 className="font-medium">{state.zoneInfo.name}</h3>
-                    <p className="text-sm text-muted-foreground">Area: {state.zoneInfo.area} km²</p>
-                    <p className="text-sm text-muted-foreground">Population: {state.zoneInfo.population.toLocaleString()}</p>
+                    <h3 className="font-medium">{ZONE_DATA[state.zone]?.name || "Unknown Zone"}</h3>
+                    <p className="text-sm text-muted-foreground">Area: {ZONE_DATA[state.zone]?.area || "—"} km²</p>
+                    <p className="text-sm text-muted-foreground">Population: {ZONE_DATA[state.zone]?.population.toLocaleString() || "—"}</p>
                   </div>
                 </div>
                 <Button variant="glass" size="sm" className="w-full" asChild>
@@ -358,13 +360,13 @@ const DigitalTwin = () => {
                   {/* Overall Stress Indicator */}
                   <div className="absolute top-4 left-4 glass-card p-3">
                     <div className="text-xs text-muted-foreground mb-1">Overall Stress</div>
-                    <div className="text-2xl font-bold font-mono-data">{state.riskProfile.overallStress.toFixed(0)}</div>
+                    <div className="text-2xl font-bold font-mono-data">{state.stress.overallStress.toFixed(0)}</div>
                     <div className="w-24 h-1 rounded-full bg-white/10 mt-2">
                       <div
                         className="h-full rounded-full transition-all duration-300"
                         style={{
-                          width: `${state.riskProfile.overallStress}%`,
-                          backgroundColor: state.riskProfile.overallStress > 70 ? "#ef4444" : state.riskProfile.overallStress > 40 ? "#f59e0b" : "#22c55e",
+                          width: `${state.stress.overallStress}%`,
+                          backgroundColor: state.stress.overallStress > 70 ? "#ef4444" : state.stress.overallStress > 40 ? "#f59e0b" : "#22c55e",
                         }}
                       />
                     </div>
