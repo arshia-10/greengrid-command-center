@@ -1,9 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Globe, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+<<<<<<< Updated upstream
+=======
+import { signInWithEmailAndPassword, sendEmailVerification, signOut } from "firebase/auth";
+>>>>>>> Stashed changes
 import { auth } from "@/firebase";
 
 const Login = () => {
@@ -12,7 +16,13 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationError, setVerificationError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  // If redirected from signup, show the verification message
+  const redirectedFromSignup = (location.state as any)?.fromSignup;
+  const signupEmail = (location.state as any)?.email || null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +35,41 @@ const Login = () => {
 
     setLoading(true);
 
+    // reset verification flags
+    setVerificationError("");
+    setVerificationSent(false);
+
     try {
+<<<<<<< Updated upstream
       await auth.signInWithEmailAndPassword(auth, email, password);
+=======
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        // Try to resend verification email
+        try {
+          await sendEmailVerification(user);
+          setVerificationSent(true);
+        } catch (sendErr: any) {
+          console.error("Failed to send verification email:", sendErr);
+          setVerificationError(sendErr?.message || "Failed to send verification email");
+        }
+
+        // Sign out unverified user to prevent access
+        try {
+          await signOut(auth);
+        } catch (signOutErr) {
+          console.warn("Sign out after unverified login failed:", signOutErr);
+        }
+
+        setError("Email not verified. A verification link was (re)sent — please check your inbox and verify before logging in.");
+        setLoading(false);
+        return;
+      }
+
+      // Verified — proceed
+>>>>>>> Stashed changes
       navigate("/dashboard");
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
@@ -152,8 +195,25 @@ const Login = () => {
                   </div>
                 </div>
 
+                {verificationSent && (
+                  <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-sm text-emerald-400 mb-2">
+                    Verification email sent — check your inbox (and spam) and then sign in.
+                  </div>
+                )}
+                {redirectedFromSignup && (
+                  <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-sm text-emerald-400 mb-2">
+                    We've sent a verification link to {signupEmail ?? 'your email'}. Please verify your address before signing in.
+                  </div>
+                )}
+
+                {verificationError && (
+                  <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 p-3 text-sm text-yellow-400 mb-2">
+                    {verificationError}
+                  </div>
+                )}
+
                 {error && (
-                  <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
+                  <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400 mb-2">
                     {error}
                   </div>
                 )}

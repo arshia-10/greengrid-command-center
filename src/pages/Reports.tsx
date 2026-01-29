@@ -26,7 +26,10 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useRef } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { useState, useRef, useEffect } from "react";
+import { db, auth } from "@/firebase";
+import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
 
 const sidebarLinks = [
   { icon: BarChart3, label: "Dashboard", href: "/dashboard" },
@@ -39,9 +42,9 @@ const sidebarLinks = [
 ];
 
 const initialReports = [
-  { id: 1, name: "Summer Heatwave Readiness – Downtown", type: "Impact Assessment", status: "Published", age: "2 hours ago" },
-  { id: 2, name: "AQI Improvement Pilot – Industrial Belt", type: "Policy Draft", status: "In review", age: "1 day ago" },
-  { id: 3, name: "Riverfront Cleanup – Phase 1", type: "Post-Action Report", status: "Published", age: "3 days ago" },
+  { id: "1", name: "Summer Heatwave Readiness – Downtown", type: "Impact Assessment", status: "Published", age: "2 hours ago", description: "Analysis of heat impact on downtown region" },
+  { id: "2", name: "AQI Improvement Pilot – Industrial Belt", type: "Policy Draft", status: "In review", age: "1 day ago", description: "Air quality improvement initiatives" },
+  { id: "3", name: "Riverfront Cleanup – Phase 1", type: "Post-Action Report", status: "Published", age: "3 days ago", description: "Cleanup project completion report" },
 ];
 
 const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => (
@@ -105,53 +108,163 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 const Reports = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [recentReports, setRecentReports] = useState(initialReports);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Text Report States
+  const [reportTitle, setReportTitle] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [isSubmittingText, setIsSubmittingText] = useState(false);
+  const [textSubmitSuccess, setTextSubmitSuccess] = useState(false);
+  
+  // PDF Upload States
+  const [isPdfUploading, setIsPdfUploading] = useState(false);
+  const [pdfUploadSuccess, setPdfUploadSuccess] = useState(false);
+  const [pdfTitle, setPdfTitle] = useState("");
+  const pdfFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || file.type !== "application/pdf") {
+  // Load reports from Firebase on mount
+  useEffect(() => {
+    const loadReports = async () => {
+      try {
+        const q = query(collection(db, "reports"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+        const firestoreReports = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as any[];
+        if (firestoreReports.length > 0) {
+          setRecentReports(firestoreReports);
+        }
+      } catch (error) {
+        console.log("No reports in Firebase yet or error loading:", error);
+      }
+    };
+    loadReports();
+  }, []);
+
+  // Handle Text Report Submission
+  const handleTextSubmit = async () => {
+    if (!reportTitle.trim()) {
+      alert("Please enter a report title");
       return;
     }
 
-    setIsUploading(true);
-    setUploadSuccess(false);
+    setIsSubmittingText(true);
+    setTextSubmitSuccess(false);
 
-    // Simulate upload delay for professional feel
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Extract filename without extension
-    const fileName = file.name.replace(/\.pdf$/i, "").trim() || "Environmental Report";
-    
-    // Generate report type based on filename
-    const reportTypes = ["Impact Assessment", "Policy Draft", "Post-Action Report", "Environmental Analysis", "Risk Evaluation"];
-    const randomType = reportTypes[Math.floor(Math.random() * reportTypes.length)];
+      const newReport = {
+        name: reportTitle,
+        type: "Text Report",
+        status: "Published" as const,
+        age: "just now",
+        description: reportDescription || "(No description provided)",
+        createdAt: new Date(),
+        reportType: "text",
+        userId: auth.currentUser?.uid || "anonymous",
+      };
 
-    // Create new report entry
-    const newReport = {
-      id: Date.now(),
-      name: fileName,
-      type: randomType,
-      status: "Published" as const,
-      age: "just now",
-    };
+      // Save to Firebase
+      try {
+        const docRef = await addDoc(collection(db, "reports"), newReport);
+        const reportWithId = {
+          id: docRef.id,
+          ...newReport,
+        };
+        setRecentReports((prev) => [reportWithId, ...prev]);
+        console.log("Report saved to Firebase with ID:", docRef.id);
+      } catch (firestoreError) {
+        console.error("Firebase error:", firestoreError);
+        // Still add locally if Firebase fails
+        const reportWithId = {
+          id: Date.now().toString(),
+          ...newReport,
+        };
+        setRecentReports((prev) => [reportWithId, ...prev]);
+      }
 
-    setRecentReports((prev) => [newReport, ...prev]);
-    setIsUploading(false);
-    setUploadSuccess(true);
+      setIsSubmittingText(false);
+      setTextSubmitSuccess(true);
+      setReportTitle("");
+      setReportDescription("");
 
-    // Reset success message after 3 seconds
-    setTimeout(() => setUploadSuccess(false), 3000);
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      setTimeout(() => setTextSubmitSuccess(false), 3000);
+    } catch (error) {
+      console.error("Submit error:", error);
+      setIsSubmittingText(false);
+      alert("Error submitting report. Please try again.");
     }
   };
 
-  const triggerFileUpload = () => {
-    fileInputRef.current?.click();
+  // Handle PDF Upload
+  const handlePdfUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || file.type !== "application/pdf") {
+      alert("Please select a PDF file");
+      return;
+    }
+
+    setIsPdfUploading(true);
+    setPdfUploadSuccess(false);
+
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const reportTypes = ["Impact Assessment", "Policy Draft", "Post-Action Report", "Environmental Analysis", "Risk Evaluation"];
+      const randomType = reportTypes[Math.floor(Math.random() * reportTypes.length)];
+
+      // Use provided title or extract from filename
+      const title = pdfTitle.trim() || file.name.replace(/\.pdf$/i, "").trim() || "Environmental Report";
+
+      const newReport = {
+        name: title,
+        type: randomType,
+        status: "Published" as const,
+        age: "just now",
+        description: `PDF Document: ${file.name}`,
+        createdAt: new Date(),
+        fileName: file.name,
+        reportType: "pdf",
+        userId: auth.currentUser?.uid || "anonymous",
+      };
+
+      try {
+        const docRef = await addDoc(collection(db, "reports"), newReport);
+        const reportWithId = {
+          id: docRef.id,
+          ...newReport,
+        };
+        setRecentReports((prev) => [reportWithId, ...prev]);
+        console.log("PDF report saved to Firebase with ID:", docRef.id);
+      } catch (firestoreError) {
+        console.error("Firebase error:", firestoreError);
+        // Still add locally if Firebase fails
+        const reportWithId = {
+          id: Date.now().toString(),
+          ...newReport,
+        };
+        setRecentReports((prev) => [reportWithId, ...prev]);
+      }
+
+      setIsPdfUploading(false);
+      setPdfUploadSuccess(true);
+      setPdfTitle("");
+
+      setTimeout(() => setPdfUploadSuccess(false), 3000);
+
+      if (pdfFileInputRef.current) {
+        pdfFileInputRef.current.value = "";
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      setIsPdfUploading(false);
+      alert("Error uploading PDF. Please try again.");
+    }
+  };
+
+  const triggerPdfUpload = () => {
+    pdfFileInputRef.current?.click();
   };
 
   return (
@@ -210,31 +323,38 @@ const Reports = () => {
                   <span>Last 30 days</span>
                 </div>
               </div>
-              <div className="divide-y divide-white/5 text-sm">
-                <div className="grid grid-cols-[minmax(0,2fr),minmax(0,1.3fr),120px,120px] py-2 text-xs text-muted-foreground">
-                  <span>Title</span>
-                  <span>Type</span>
-                  <span>Status</span>
-                  <span>Last updated</span>
-                </div>
-                {recentReports.map((report) => (
-                  <div
-                    key={report.id}
-                    className="grid grid-cols-[minmax(0,2fr),minmax(0,1.3fr),120px,120px] items-center py-3 animate-in fade-in slide-in-from-top-2 duration-300"
-                  >
-                    <span className="truncate pr-4">{report.name}</span>
-                    <span className="text-xs text-muted-foreground truncate pr-4">{report.type}</span>
-                    <span className="flex items-center gap-1">
-                      {report.status === "Published" ? (
-                        <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                      ) : (
-                        <AlertTriangle className="h-3 w-3 text-yellow-400" />
+              <div className="space-y-3">
+                {recentReports.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-8">No reports yet. Upload one to get started!</p>
+                ) : (
+                  recentReports.map((report) => (
+                    <div
+                      key={report.id}
+                      className="p-3 rounded-lg bg-white/5 border border-white/5 hover:border-primary/20 transition-colors animate-in fade-in slide-in-from-top-2 duration-300"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium truncate pr-2">{report.name}</h3>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className="text-xs text-muted-foreground">{report.type}</span>
+                            <span className="flex items-center gap-1">
+                              {report.status === "Published" ? (
+                                <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                              ) : (
+                                <AlertTriangle className="h-3 w-3 text-yellow-400" />
+                              )}
+                              <span className="text-xs">{report.status}</span>
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{report.age}</span>
+                      </div>
+                      {report.description && (
+                        <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{report.description}</p>
                       )}
-                      <span className="text-xs">{report.status}</span>
-                    </span>
-                    <span className="text-xs text-muted-foreground">{report.age}</span>
-                  </div>
-                ))}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -273,31 +393,100 @@ const Reports = () => {
               </div>
 
               <div className="glass-card p-4 space-y-3">
-                <h2 className="font-semibold">Export Center</h2>
+                <h2 className="font-semibold flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Write Text Report
+                </h2>
                 <p className="text-xs text-muted-foreground">
-                  Upload a PDF report to add it to your recent reports, or download existing reports.
+                  Write a direct report with title and description.
                 </p>
+
+                {textSubmitSuccess && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 animate-in fade-in slide-in-from-top-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-400" />
+                    <span className="text-xs text-emerald-400">Report submitted successfully!</span>
+                  </div>
+                )}
                 
                 <input
-                  ref={fileInputRef}
+                  type="text"
+                  value={reportTitle}
+                  onChange={(e) => setReportTitle(e.target.value)}
+                  placeholder="Report Title"
+                  className="w-full px-3 py-2 bg-secondary/40 border border-white/10 rounded-lg text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                
+                <Textarea
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  className="min-h-[80px] bg-secondary/40 border-white/10"
+                  placeholder="Describe your report... (e.g., 'Analysis of Q4 environmental impact and recommendations for sustainable initiatives')"
+                />
+                
+                <Button
+                  variant="hero"
+                  className="w-full"
+                  onClick={handleTextSubmit}
+                  disabled={isSubmittingText || !reportTitle.trim()}
+                >
+                  {isSubmittingText ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Submit Report
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="glass-card p-4 space-y-3">
+                <h2 className="font-semibold flex items-center gap-2">
+                  <Upload className="h-4 w-4 text-primary" />
+                  Upload PDF Document
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Upload a PDF file to add it to your recent reports.
+                </p>
+
+                {pdfUploadSuccess && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 animate-in fade-in slide-in-from-top-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-400" />
+                    <span className="text-xs text-emerald-400">PDF uploaded successfully!</span>
+                  </div>
+                )}
+                
+                <input
+                  type="text"
+                  value={pdfTitle}
+                  onChange={(e) => setPdfTitle(e.target.value)}
+                  placeholder="PDF Title"
+                  className="w-full px-3 py-2 bg-secondary/40 border border-white/10 rounded-lg text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                
+                <input
+                  ref={pdfFileInputRef}
                   type="file"
                   accept=".pdf"
-                  onChange={handleFileUpload}
+                  onChange={handlePdfUpload}
                   className="hidden"
                 />
                 
                 <Button
                   variant="hero"
                   className="w-full"
-                  onClick={triggerFileUpload}
-                  disabled={isUploading}
+                  onClick={triggerPdfUpload}
+                  disabled={isPdfUploading}
                 >
-                  {isUploading ? (
+                  {isPdfUploading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Uploading...
                     </>
-                  ) : uploadSuccess ? (
+                  ) : pdfUploadSuccess ? (
                     <>
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Uploaded Successfully
@@ -305,7 +494,7 @@ const Reports = () => {
                   ) : (
                     <>
                       <Upload className="h-4 w-4 mr-2" />
-                      Upload PDF Report
+                      Select PDF File
                     </>
                   )}
                 </Button>

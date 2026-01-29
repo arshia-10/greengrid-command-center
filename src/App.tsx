@@ -17,6 +17,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import VerifyEmail from "./pages/VerifyEmail";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+<<<<<<< Updated upstream
             <Route
               path="/profile"
               element={
@@ -100,6 +102,9 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+=======
+            <Route path="/verify-email" element={<VerifyEmail />} />
+>>>>>>> Stashed changes
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
