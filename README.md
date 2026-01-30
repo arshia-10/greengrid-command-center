@@ -1,10 +1,13 @@
-# Welcome to your Lovable project
+# 🌍 GreenGrid — Environmental Intelligence System for Future Cities
 
-## Project info
+> **Real-time environmental monitoring, predictive digital twins, and fair-play impact tracking for sustainable urban planning.**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen)
 
-## How can I edit this code?
+---
+
+## 🚀 Project Overview
 
 There are several ways of editing your application.
 
