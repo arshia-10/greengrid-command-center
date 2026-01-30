@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ActivityData {
   simulationsRun: number;
@@ -14,23 +15,37 @@ interface ActivityContextType {
   getImpactScore: () => number;
   isNewUser: () => boolean;
   loadActivity: () => void;
+  recordLoginDay: () => void;
 }
 
 const ActivityContext = createContext<ActivityContextType | undefined>(undefined);
 
-const STORAGE_KEY = "greengrid_activity";
+const STORAGE_KEY_PREFIX = "greengrid_activity_"; // per-user key: greengrid_activity_{uid}
 
 export const ActivityProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
+
   const [activity, setActivity] = useState<ActivityData>({
     simulationsRun: 0,
     reportsGenerated: 0,
     activeDays: [],
   });
 
-  // Load activity from localStorage on mount
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = (): string => new Date().toISOString().split("T")[0];
+
+  // Build per-user storage key
+  const getStorageKeyForUser = (uid?: string) => {
+    if (!uid) return null;
+    return `${STORAGE_KEY_PREFIX}${uid}`;
+  };
+
+  // Load activity for the current authenticated user
   const loadActivity = () => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const key = getStorageKeyForUser(user?.uid);
+      if (!key) return;
+      const stored = localStorage.getItem(key);
       if (stored) {
         const parsed = JSON.parse(stored);
         setActivity({
@@ -38,6 +53,9 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
           reportsGenerated: parsed.reportsGenerated ?? 0,
           activeDays: parsed.activeDays ?? [],
         });
+      } else {
+        // Initialize clean for new users
+        setActivity({ simulationsRun: 0, reportsGenerated: 0, activeDays: [] });
       }
     } catch (error) {
       console.error("Failed to load activity data:", error);
@@ -45,76 +63,74 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    loadActivity();
-  }, []);
+    // When auth user changes, load that user's activity
+    if (user?.uid) {
+      loadActivity();
+      // Record login date once on sign-in (doesn't double-count multiple logins same day)
+      recordLoginDay();
+    } else {
+      // Clear activity when no user is authenticated
+      setActivity({ simulationsRun: 0, reportsGenerated: 0, activeDays: [] });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
-  // Save activity to localStorage
+  // Save activity to localStorage for the current user
   const saveActivity = (newActivity: ActivityData) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newActivity));
+      const key = getStorageKeyForUser(user?.uid);
+      if (!key) return;
+      localStorage.setItem(key, JSON.stringify(newActivity));
     } catch (error) {
       console.error("Failed to save activity data:", error);
     }
   };
 
-  // Get today's date in YYYY-MM-DD format
-  const getTodayDate = (): string => {
-    return new Date().toISOString().split("T")[0];
-  };
-
-  // Increment simulations and mark active day
+  // Increment simulations (does NOT affect activeDays directly)
   const incrementSimulations = () => {
     setActivity((prev) => {
-      const today = getTodayDate();
-      const newActiveDays = prev.activeDays.includes(today)
-        ? prev.activeDays
-        : [...prev.activeDays, today];
-
       const updated = {
         simulationsRun: prev.simulationsRun + 1,
         reportsGenerated: prev.reportsGenerated,
-        activeDays: newActiveDays,
+        activeDays: prev.activeDays,
       };
-
       saveActivity(updated);
       return updated;
     });
   };
 
-  // Increment reports and mark active day
+  // Increment reports (does NOT affect activeDays directly)
   const incrementReports = () => {
     setActivity((prev) => {
-      const today = getTodayDate();
-      const newActiveDays = prev.activeDays.includes(today)
-        ? prev.activeDays
-        : [...prev.activeDays, today];
-
       const updated = {
         simulationsRun: prev.simulationsRun,
         reportsGenerated: prev.reportsGenerated + 1,
-        activeDays: newActiveDays,
+        activeDays: prev.activeDays,
       };
-
       saveActivity(updated);
       return updated;
     });
   };
 
-  // Get count of active days
-  const getActiveDaysCount = (): number => {
-    return activity.activeDays.length;
+  // Record today's date as an active day for the current authenticated user
+  const recordLoginDay = () => {
+    if (!user?.uid) return;
+    const today = getTodayDate();
+    setActivity((prev) => {
+      if (prev.activeDays.includes(today)) return prev;
+      const updated = { ...prev, activeDays: [...prev.activeDays, today] };
+      saveActivity(updated);
+      return updated;
+    });
   };
+
+  const getActiveDaysCount = (): number => activity.activeDays.length;
 
   // Calculate impact score
   // Formula: (simulationsRun * 5) + (reportsGenerated * 10)
-  const getImpactScore = (): number => {
-    return activity.simulationsRun * 5 + activity.reportsGenerated * 10;
-  };
+  const getImpactScore = (): number => activity.simulationsRun * 5 + activity.reportsGenerated * 10;
 
-  // Check if user is new (no activity yet)
-  const isNewUser = (): boolean => {
-    return activity.simulationsRun === 0 && activity.reportsGenerated === 0;
-  };
+  const isNewUser = (): boolean => activity.simulationsRun === 0 && activity.reportsGenerated === 0;
 
   return (
     <ActivityContext.Provider
@@ -126,6 +142,7 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
         getImpactScore,
         isNewUser,
         loadActivity,
+        recordLoginDay,
       }}
     >
       {children}

@@ -63,15 +63,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           totalImpactScore: firestoreData.totalImpactScore ?? 0,
         };
         setProfile(profile);
-        // Update localStorage with latest Firestore data
+        // Update localStorage with latest Firestore data (user-scoped)
         try {
-          localStorage.setItem("greengrid_user_profile", JSON.stringify(profile));
+          const key = `greengrid_user_profile_${uid}`;
+          localStorage.setItem(key, JSON.stringify(profile));
         } catch (error) {
           console.error("Failed to update localStorage:", error);
         }
       } else {
         // Fallback to localStorage
-        const stored = localStorage.getItem("greengrid_user_profile");
+        const key = `greengrid_user_profile_${uid}`;
+        const stored = localStorage.getItem(key);
         if (stored) {
           setProfile(JSON.parse(stored));
         }
@@ -80,7 +82,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Failed to load profile from Firestore:", error);
       // Fallback to localStorage
       try {
-        const stored = localStorage.getItem("greengrid_user_profile");
+        const key = `greengrid_user_profile_${uid}`;
+        const stored = localStorage.getItem(key);
         if (stored) {
           setProfile(JSON.parse(stored));
         }
@@ -95,7 +98,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const updated = { ...profile, ...newProfile } as UserProfile;
     setProfile(updated);
     try {
-      localStorage.setItem("greengrid_user_profile", JSON.stringify(updated));
+      if (user?.uid) {
+        const key = `greengrid_user_profile_${user.uid}`;
+        localStorage.setItem(key, JSON.stringify(updated));
+      }
     } catch (error) {
       console.error("Failed to save profile:", error);
     }
