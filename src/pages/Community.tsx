@@ -48,16 +48,11 @@ const sidebarLinks = [
   { icon: User, label: "Profile", href: "/profile" },
 ];
 
-const initialReports = [
-  { id: 1, type: "Smoke / Pollution", location: "Industrial Belt · Ward 7", time: "5 min ago", status: "Pending" },
-  { id: 2, type: "Illegal Dumping", location: "Riverfront · Sector B", time: "32 min ago", status: "Verified" },
-  { id: 3, type: "Extreme Heat", location: "Central Plaza", time: "2 hrs ago", status: "In Action" },
-];
 
 const Community = () => {
   const { addCredit } = useCredits();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [recentReports, setRecentReports] = useState(initialReports);
+  const [recentReports, setRecentReports] = useState<any[]>([]);
   
   // Multi-step form state
   const [currentStep, setCurrentStep] = useState(1);

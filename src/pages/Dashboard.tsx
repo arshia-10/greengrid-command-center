@@ -31,7 +31,7 @@ import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { LocationSelector } from "@/components/LocationSelector";
 import { useState, useEffect } from "react";
 import { db } from "@/firebase";
-import { collection, query, orderBy, limit, where, getDocs } from "firebase/firestore";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "@/contexts/LocationContext";
 import { useEnvironmentalData, useGreenHealthScore } from "@/hooks/useEnvironmental";
 import { useActivity } from "@/contexts/ActivityContext";
@@ -178,8 +178,11 @@ const Dashboard = () => {
   const { weather, airQuality, loading: envLoading, refetch: refetchEnv } = useEnvironmentalData();
   const healthScore = useGreenHealthScore();
   const activity = useActivity();
+  const { user } = useAuth();
 
-  // Fetch latest reports for selected location
+  // Dashboard shows only user-created reports; no static/demo reports here
+
+  // Fetch latest reports for current user only
   useEffect(() => {
     const fetchLatestReports = async () => {
       if (!selectedLocation) {
@@ -188,28 +191,30 @@ const Dashboard = () => {
         return;
       }
 
+      if (!user?.uid) {
+        setLatestReports([]);
+        setReportsLoading(false);
+        return;
+      }
+
       setReportsLoading(true);
       setReportsError(null);
       try {
-        // In a real app, you'd filter by location proximity
-        // For now, just get latest reports
-        const q = query(collection(db, "reports"), orderBy("createdAt", "desc"), limit(3));
-        const querySnapshot = await getDocs(q);
-        const reports = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setLatestReports(reports);
+        // Use reportService to load latest user reports only
+        const { default: reportService } = await import("@/lib/reportService");
+        const userReports = await reportService.getLatestUserReports(user.uid, 3);
+        setLatestReports(userReports);
       } catch (error) {
-        console.error("Error fetching reports:", error);
-        setReportsError("Failed to load reports");
+        console.error("Error fetching reports (primary + fallback):", error);
+        // On any failure, show an empty list rather than an error banner
+        setLatestReports([]);
       } finally {
         setReportsLoading(false);
       }
     };
 
     fetchLatestReports();
-  }, [selectedLocation]);
+  }, [selectedLocation, user?.uid]);
 
   const handleRefreshData = () => {
     refetchEnv();
@@ -261,17 +266,6 @@ const Dashboard = () => {
         />
 
         <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-auto">
-          {/* Error state */}
-          {reportsError && (
-            <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-destructive">Error loading reports</p>
-                <p className="text-sm text-destructive/80">{reportsError}</p>
-              </div>
-            </div>
-          )}
-
           {/* Latest Reports Panel */}
           <div className="glass-card p-4">
             <div className="flex items-center justify-between mb-4">
@@ -296,7 +290,13 @@ const Dashboard = () => {
               ) : latestReports.length === 0 ? (
                 <div className="text-center py-6">
                   <FileText className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">No reports yet for {selectedLocation.city}</p>
+                  <p className="text-sm text-muted-foreground">You haven't submitted any reports yet.</p>
+                  <Button variant="ghost" size="sm" asChild className="mt-3">
+                    <Link to="/reports" className="flex items-center gap-1">
+                      Create your first report
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
                 </div>
               ) : (
                 latestReports.map((report: any) => (

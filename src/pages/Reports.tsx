@@ -30,11 +30,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useRef, useEffect } from "react";
 import { db, auth } from "@/firebase";
-import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
+import reportService from "@/lib/reportService";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useActivity } from "@/contexts/ActivityContext";
 
 // db may be mock (firebase.ts); type assertion allows Firestore API when real Firebase is used
+// db may be mock (firebase.ts); reportService handles persistence; keep db reference available if needed
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const firestoreDb = db as any;
 import { useCredits } from "@/contexts/CreditsContext";
@@ -50,11 +52,6 @@ const sidebarLinks = [
   { icon: User, label: "Profile", href: "/profile" },
 ];
 
-const initialReports = [
-  { id: "1", name: "Summer Heatwave Readiness – Downtown", type: "Impact Assessment", status: "Published", age: "2 hours ago", description: "Analysis of heat impact on downtown region" },
-  { id: "2", name: "AQI Improvement Pilot – Industrial Belt", type: "Policy Draft", status: "In review", age: "1 day ago", description: "Air quality improvement initiatives" },
-  { id: "3", name: "Riverfront Cleanup – Phase 1", type: "Post-Action Report", status: "Published", age: "3 days ago", description: "Cleanup project completion report" },
-];
 
 const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => (
   <>
@@ -118,8 +115,9 @@ const Reports = () => {
   const { addCredit } = useCredits();
   const { addNotification } = useNotifications();
   const { incrementReports } = useActivity();
+  const { user, profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [recentReports, setRecentReports] = useState(initialReports);
+  const [recentReports, setRecentReports] = useState<any[]>([]);
   
   // Text Report States
   const [reportTitle, setReportTitle] = useState("");
@@ -133,25 +131,24 @@ const Reports = () => {
   const [pdfTitle, setPdfTitle] = useState("");
   const pdfFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load reports from Firebase on mount
+  // Load reports from persistent storage (Firestore primary, localStorage fallback)
   useEffect(() => {
     const loadReports = async () => {
-      try {
-        const q = query(collection(firestoreDb, "reports"), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
-        const firestoreReports = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as any[];
-        if (firestoreReports.length > 0) {
-          setRecentReports(firestoreReports);
-        }
-      } catch (error) {
-        console.log("No reports in Firebase yet or error loading:", error);
+      if (!user?.uid) {
+        setRecentReports([]);
+        return;
       }
+      const reports = await reportService.getUserReports(user.uid);
+      // Sort newest first
+      const sorted = reports.slice().sort((a: any, b: any) => {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
+      });
+      setRecentReports(sorted);
     };
     loadReports();
-  }, []);
+  }, [user?.uid]);
 
   // Handle Text Report Submission
   const handleTextSubmit = async () => {
@@ -160,71 +157,51 @@ const Reports = () => {
       return;
     }
 
+    if (!user?.uid) {
+      alert("Please sign in to submit a report");
+      return;
+    }
+
     setIsSubmittingText(true);
     setTextSubmitSuccess(false);
 
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const newReport = {
-        name: reportTitle,
-        type: "Text Report",
-        status: "Published" as const,
-        age: "just now",
-        description: reportDescription || "(No description provided)",
-        createdAt: new Date(),
-        reportType: "text",
-        userId: auth.currentUser?.uid || "anonymous",
-      };
-
-      // Save to Firebase
       try {
-        const docRef = await addDoc(collection(firestoreDb, "reports"), newReport);
-        const reportWithId = {
-          id: docRef.id,
-          ...newReport,
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        const newReport = {
+          name: reportTitle,
+          type: "Text Report",
+          status: "Published" as const,
+          description: reportDescription || "(No description provided)",
+          createdAt: new Date(),
+          reportType: "text",
+          createdByUsername: profile?.name || "Anonymous",
         };
-        setRecentReports((prev) => [reportWithId, ...prev]);
-        console.log("Report saved to Firebase with ID:", docRef.id);
-        
-        // Add notification
+
+        // Save (Firestore best-effort, localStorage guaranteed)
+        const saved = await reportService.saveReport(user.uid, newReport);
+        setRecentReports((prev) => [saved, ...prev].slice(0, 100));
+
         addNotification({
           type: "report",
           title: "New Report Submitted",
           message: `"${reportTitle}" has been added successfully`,
-          data: reportWithId,
+          data: saved,
         });
-      } catch (firestoreError) {
-        console.error("Firebase error:", firestoreError);
-        // Still add locally if Firebase fails
-        const reportWithId = {
-          id: Date.now().toString(),
-          ...newReport,
-        };
-        setRecentReports((prev) => [reportWithId, ...prev]);
-        
-        // Add notification for local add
-        addNotification({
-          type: "report",
-          title: "New Report Submitted",
-          message: `"${reportTitle}" has been added`,
-          data: reportWithId,
-        });
+
+        addCredit("report");
+        incrementReports();
+        setIsSubmittingText(false);
+        setTextSubmitSuccess(true);
+        setReportTitle("");
+        setReportDescription("");
+
+        setTimeout(() => setTextSubmitSuccess(false), 3000);
+      } catch (error) {
+        console.error("Submit error:", error);
+        setIsSubmittingText(false);
+        alert("Error submitting report. Please try again.");
       }
-
-      addCredit("report");
-      incrementReports();
-      setIsSubmittingText(false);
-      setTextSubmitSuccess(true);
-      setReportTitle("");
-      setReportDescription("");
-
-      setTimeout(() => setTextSubmitSuccess(false), 3000);
-    } catch (error) {
-      console.error("Submit error:", error);
-      setIsSubmittingText(false);
-      alert("Error submitting report. Please try again.");
-    }
   };
 
   // Handle PDF Upload
@@ -232,6 +209,11 @@ const Reports = () => {
     const file = event.target.files?.[0];
     if (!file || file.type !== "application/pdf") {
       alert("Please select a PDF file");
+      return;
+    }
+
+    if (!user?.uid) {
+      alert("Please sign in to upload a report");
       return;
     }
 
@@ -256,53 +238,35 @@ const Reports = () => {
         createdAt: new Date(),
         fileName: file.name,
         reportType: "pdf",
-        userId: auth.currentUser?.uid || "anonymous",
+        createdByUserId: user.uid,
+        createdByUsername: profile?.name || "Anonymous",
       };
 
       try {
-        const docRef = await addDoc(collection(firestoreDb, "reports"), newReport);
-        const reportWithId = {
-          id: docRef.id,
-          ...newReport,
-        };
-        setRecentReports((prev) => [reportWithId, ...prev]);
-        console.log("PDF report saved to Firebase with ID:", docRef.id);
-        
-        // Trigger notification
+        const saved = await reportService.saveReport(user.uid, newReport);
+        setRecentReports((prev) => [saved, ...prev].slice(0, 100));
         addNotification({
           type: "report",
           title: "PDF Report Uploaded",
           message: `"${newReport.name}" has been uploaded successfully`,
-          data: reportWithId,
+          data: saved,
         });
-      } catch (firestoreError) {
-        console.error("Firebase error:", firestoreError);
-        // Still add locally if Firebase fails
-        const reportWithId = {
-          id: Date.now().toString(),
-          ...newReport,
-        };
-        setRecentReports((prev) => [reportWithId, ...prev]);
-        
-        // Trigger notification for local fallback
-        addNotification({
-          type: "report",
-          title: "PDF Report Added",
-          message: `"${newReport.name}" has been added to your reports`,
-          data: reportWithId,
-        });
-      }
 
-      addCredit("report");
-      incrementReports();
-      setIsPdfUploading(false);
-      setPdfUploadSuccess(true);
-      setPdfTitle("");
+        addCredit("report");
+        incrementReports();
+        setIsPdfUploading(false);
+        setPdfUploadSuccess(true);
+        setPdfTitle("");
 
-      setTimeout(() => setPdfUploadSuccess(false), 3000);
+        setTimeout(() => setPdfUploadSuccess(false), 3000);
 
-      if (pdfFileInputRef.current) {
-        pdfFileInputRef.current.value = "";
+        if (pdfFileInputRef.current) {
+          pdfFileInputRef.current.value = "";
+        }
+      } catch (err) {
+        console.error("Upload save error:", err);
+        setIsPdfUploading(false);
+        alert("Error saving PDF report. Please try again.");
       }
     } catch (error) {
       console.error("Upload error:", error);
@@ -385,6 +349,7 @@ const Reports = () => {
                           <h3 className="font-medium truncate pr-2">{report.name}</h3>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className="text-xs text-muted-foreground">{report.type}</span>
+                            <span className="text-xs text-emerald-400 font-medium">Owned by you</span>
                             <span className="flex items-center gap-1">
                               {report.status === "Published" ? (
                                 <CheckCircle2 className="h-3 w-3 text-emerald-400" />
