@@ -20,6 +20,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { CreditsProvider } from "./contexts/CreditsContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { ActivityProvider } from "./contexts/ActivityContext";
+import { LocationProvider } from "./contexts/LocationContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import VerifyEmail from "./pages/VerifyEmail";
 
@@ -31,9 +32,10 @@ const App = () => (
       <NotificationProvider>
         <CreditsProvider>
           <ActivityProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
+            <LocationProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
               <BrowserRouter
             future={{
               v7_startTransition: true,
@@ -122,6 +124,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
               </TooltipProvider>
+            </LocationProvider>
           </ActivityProvider>
         </CreditsProvider>
       </NotificationProvider>
