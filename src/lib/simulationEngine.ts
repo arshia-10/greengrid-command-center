@@ -85,29 +85,39 @@ export type SavedScenario = {
   result: SimulationResult;
   createdAt: string;
 };
+// Per-user storage keys to ensure user-isolated saved scenarios
+const STORAGE_KEY_PREFIX = "greengrid_saved_scenarios_v1_"; // append userId
 
-const STORAGE_KEY = "greengrid_saved_scenarios_v1";
+export type SavedScenarioV2 = SavedScenario & { userId: string };
 
-export function loadSavedScenarios(): SavedScenario[] {
+export function loadSavedScenarios(userId?: string): SavedScenarioV2[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!userId) return [];
+    const key = `${STORAGE_KEY_PREFIX}${userId}`;
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
-    return JSON.parse(raw) as SavedScenario[];
+    return JSON.parse(raw) as SavedScenarioV2[];
   } catch (e) {
     return [];
   }
 }
 
-export function saveScenarioToStorage(s: Omit<SavedScenario, "id" | "createdAt"> & { name?: string }) {
-  const list = loadSavedScenarios();
-  const entry: SavedScenario = {
+export function saveScenarioToStorage(
+  s: Omit<SavedScenarioV2, "id" | "createdAt"> & { name?: string },
+  userId?: string
+) {
+  if (!userId) throw new Error("userId required to save scenario");
+  const list = loadSavedScenarios(userId);
+  const entry: SavedScenarioV2 = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     name: s.name || `Scenario ${new Date().toLocaleString()}`,
     input: s.input,
     result: s.result,
     createdAt: new Date().toISOString(),
+    userId,
   };
   list.unshift(entry);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, 20)));
+  const key = `${STORAGE_KEY_PREFIX}${userId}`;
+  localStorage.setItem(key, JSON.stringify(list.slice(0, 20)));
   return entry;
 }

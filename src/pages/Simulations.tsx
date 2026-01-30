@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useState, useEffect, useRef } from "react";
 import { runSimulation as runSim, saveScenarioToStorage, loadSavedScenarios } from "@/lib/simulationEngine";
+import { useAuth } from "@/contexts/AuthContext";
 import { registerScenario, type ScenarioInput as ScenarioServiceInput } from "@/lib/scenarioService";
 import { useCredits } from "@/contexts/CreditsContext";
 import { useActivity } from "@/contexts/ActivityContext";
@@ -119,6 +120,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 const Simulations = () => {
   const { addCredit } = useCredits();
   const { incrementSimulations } = useActivity();
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [controlValues, setControlValues] = useState<Record<string, number>>(
     Object.fromEntries(scenarioControls.map((c) => [c.id, c.defaultValue]))
@@ -131,7 +133,7 @@ const Simulations = () => {
   const [displayedCount, setDisplayedCount] = useState(0);
   const [isRunningSim, setIsRunningSim] = useState(false);
   const [outcomes, setOutcomes] = useState({ aqiImprovementPct: 0, heatReductionC: 0, waterStressReliefPct: 0 });
-  const [saved, setSaved] = useState(loadSavedScenarios());
+  const [saved, setSaved] = useState(() => [] as any[]);
   const animRef = useRef<number | null>(null);
 
   const handleControlChange = (id: string, value: number[]) => {
@@ -144,6 +146,16 @@ const Simulations = () => {
       if (animRef.current) window.clearInterval(animRef.current);
     };
   }, []);
+
+  // Load saved scenarios for the authenticated user
+  useEffect(() => {
+    if (!user?.uid) {
+      setSaved([]);
+      return;
+    }
+    const list = loadSavedScenarios(user.uid);
+    setSaved(list);
+  }, [user?.uid]);
 
   const handleRun = () => {
     setIsRunningSim(true);
@@ -211,12 +223,18 @@ const Simulations = () => {
     };
     const scenarioCheck = registerScenario(scenarioInput, true); // true = will generate action plan via save
 
+    if (!user?.uid) {
+      toast.error("Please sign in to save scenarios.");
+      return;
+    }
+
     const entry = saveScenarioToStorage({ name, input: {
       treesAdded: controlValues.trees,
       trafficReduced: controlValues.traffic,
       wasteManaged: controlValues.waste,
       coolRoofs: controlValues.cooling,
-    }, result: { days, baseline: baselineData, scenario: scenarioData, outcomes } });
+    }, result: { days, baseline: baselineData, scenario: scenarioData, outcomes } }, user.uid);
+    // persist only for this user (entry already contains userId)
     setSaved((s) => [entry, ...s].slice(0, 20));
     
     // Award credit if scenario is unique and eligible
@@ -229,7 +247,8 @@ const Simulations = () => {
   };
 
   const handleLoadSaved = (id: string) => {
-    const item = loadSavedScenarios().find((s) => s.id === id);
+    const list = loadSavedScenarios(user?.uid);
+    const item = list.find((s) => s.id === id);
     if (!item) return;
     // restore controls
     setControlValues({
